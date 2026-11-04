@@ -5,6 +5,7 @@ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from agent import generate_plan
 from character_assist import suggest
+from turbo import generate_turbo
 
 ROOT = Path(__file__).parent / 'static'
 OLLAMA = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434').rstrip('/')
@@ -32,7 +33,7 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e: self.reply(503, {'error':'Chưa kết nối được Ollama. Hãy chạy ollama serve trên máy chạy app.', 'detail':str(e)})
         else: super().do_GET()
     def do_POST(self):
-        if self.path not in ('/api/assist', '/api/agent', '/api/character'): return self.reply(404, {'error':'Không tìm thấy'})
+        if self.path not in ('/api/assist', '/api/agent', '/api/character', '/api/turbo'): return self.reply(404, {'error':'Không tìm thấy'})
         acquired = False
         try:
             size = int(self.headers.get('Content-Length', '0'))
@@ -46,6 +47,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.reply(429, {'error':'Ollama đang xử lý yêu cầu khác. Chờ hoàn tất rồi thử lại.'})
             if self.path == '/api/agent':
                 return self.reply(200, generate_plan(self.ollama, p))
+            if self.path == '/api/turbo':
+                return self.reply(200, generate_turbo(self.ollama, p))
             if self.path == '/api/character':
                 return self.reply(200, suggest(self.ollama, p))
             actions = {

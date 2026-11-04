@@ -159,3 +159,16 @@ Giữ chuột giữa (nút con lăn) và kéo trong canvas để di chuyển vù
 Bấm trực tiếp lên dây (vùng bấm được mở rộng), nhãn hoặc mục trong danh sách dây để chọn. Dây được chọn sáng và dày hơn, hai đầu được làm nổi bật, các dây khác được làm mờ. Khung thông tin hiển thị đầy đủ tên hai nút và ghi chú quan hệ, có nút **Xem hai đầu dây** để đưa chúng vào vùng nhìn và **Bỏ chọn**. Các nút không bị tự sắp xếp lại.
 
 Kiểm tra mô phỏng: `node test_canvas_navigation.cjs`; chưa kiểm thử trực quan bằng browser thật trong môi trường này.
+
+## Canvas tập trung vào node, kéo thả và Turbo
+
+- Khung sửa cố định bên phải được thay bằng **hộp sửa nổi cạnh node/đầu dây đang chọn**. Bấm × hoặc nền trống để đóng. Danh sách dây chuyển thành mục có thể mở/thu gọn dưới canvas. Hộp theo vị trí nút khi kéo/cuộn, giới hạn trong vùng nhìn; canvas có thêm diện tích ngang.
+- Các chương ở thanh bên trái có thể kéo vào canvas. Khi ở trang canvas, thư viện nhân vật cũng hiện ở thanh bên trái: kéo nhân vật vào canvas hoặc bấm để thêm (cách thay thế cho thiết bị không kéo thả). Tọa độ thả tính cả zoom và vị trí cuộn; thẻ tham chiếu vẫn dùng ID nguồn và không bị nhân đôi nếu đã tồn tại.
+- `/l` lọc **tên hoặc bí danh chứa chữ l**, không chỉ đầu từ; không phân biệt hoa/thường hoặc dấu tiếng Việt. Danh sách cập nhật trong lúc dùng IME, đặt cạnh vị trí dấu `/`, dịch theo cuộn và chuyển lên trên nếu không đủ chỗ bên dưới. `/T` vì vậy cũng có thể tìm tên chứa T giữa từ. Tiện ích `/ngat`, `/ghichu` vẫn lọc bằng tên lệnh.
+- Trong hồ sơ có mục **Bí danh / tên viết tắt** (ví dụ `TT, Tất`). Bí danh được lưu trong file cùng hồ sơ.
+- Chat có chế độ **Đầy đủ / Turbo**. Nút **Mở rộng tên tắt** chuẩn bị yêu cầu Turbo; bấm Gửi để xem đề xuất trước/sau và duyệt. Việc mở rộng bí danh chạy hoàn toàn trong app, không gọi Ollama, kể cả chưa chọn model. Chỉ thay các bí danh nguyên từ đã khai báo; bí danh trùng nhiều nhân vật bị bỏ qua.
+- Turbo cho việc khác (chính tả, dấu câu, chuẩn hóa tên) chỉ gửi đoạn cần xử lý tối đa 6.000 ký tự, danh sách tên/bí danh và yêu cầu hiện tại. Không gửi tổng quan, canvas, hồ sơ dài hoặc lịch sử chat; giới hạn đầu ra 1.536 token, `think=false`. Thủ công vẫn yêu cầu chọn đoạn; chế độ tự động cho phép xử lý chương nếu vừa giới hạn. Cần phân tích cốt truyện thì dùng Đầy đủ.
+- Turbo AI vẫn dùng model Qwen đang chọn, không tự tải/chuyển model. Ngữ cảnh ngắn giảm xử lý prompt nhưng **không loại bỏ thời gian nạp trọng số nếu model chưa nằm trong bộ nhớ**. Chỉ mở rộng bí danh local là không cần suy luận/nạp model. Kết quả bị cắt được từ chối, không áp dụng thiếu nội dung.
+- Font và màu là cơ chế riêng; Turbo không gửi các đoạn màu, không phân tích canvas và không đổi quy ước màu tự do.
+
+Kiểm tra bổ sung: `node test_canvas_turbo.cjs`, `python -m unittest -v test_turbo`. Chưa kiểm thử trực quan vị trí popup, kéo thả hoặc tốc độ Qwen thật trên Windows trong môi trường này.

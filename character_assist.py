@@ -1,6 +1,6 @@
 """Profile-grounded suggestions, always reviewed by the author."""
 import json
-FIELDS=('name','role','personality','likes','dislikes','goals','fears','backstory','voice','relationships')
+FIELDS=('name','aliases','role','personality','likes','dislikes','goals','fears','backstory','voice','relationships')
 def clean_profile(value):
     if not isinstance(value,dict): raise ValueError('Chọn hồ sơ nhân vật.')
     result={}

@@ -1,6 +1,6 @@
 // Versioned project data shared by file IO, profiles, canvas and agent.
 const MARK_COLORS={red:'Đỏ',blue:'Xanh',yellow:'Vàng',purple:'Tím'};
-const PROFILE_FIELDS=['name','role','personality','likes','dislikes','goals','fears','backstory','voice','relationships'];
+const PROFILE_FIELDS=['name','aliases','role','personality','likes','dislikes','goals','fears','backstory','voice','relationships'];
 const NODE_KINDS=['event','turn','reveal','ending','chapter','character'];
 const EDGE_KINDS=['cause','turn','reveal','sequence','participation','reference'];
 function newProfile(name='Nhân vật mới'){return Object.fromEntries([['id',crypto.randomUUID()],...PROFILE_FIELDS.map(k=>[k,k==='name'?name:''])]);}
