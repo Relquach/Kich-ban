@@ -151,3 +151,11 @@ Kịch bản tổng luôn được gửi cùng mỗi yêu cầu agent, kể cả
 Nút gợi ý trong chat thay đổi theo trang đang mở. Tại Kịch bản tổng có “Đọc và góp ý cho kịch bản tổng”; tại canvas có “Kiểm tra quan hệ nhân quả trên canvas”. Nút **Agent hỗ trợ** trong Kịch bản tổng điền yêu cầu đọc phần tổng quan. Mục **Ngữ cảnh** trên chat cho biết có bao nhiêu ô tổng quan có nội dung và bao nhiêu nút canvas; mở mục này để xem từng ô đã nhập/chưa nhập. Đây là thông tin app gửi, không phải bảo đảm model đã hiểu đúng.
 
 Kiểm tra đường truyền dữ liệu bằng mô phỏng: `node test_overview_context.cjs`, và kiểm tra API tương ứng trong `test_server.py`. Chưa kiểm thử phản hồi của Qwen thật trong môi trường này.
+
+### Di chuyển vùng nhìn và chọn dây
+
+Giữ chuột giữa (nút con lăn) và kéo trong canvas để di chuyển vùng nhìn; thả nút để dừng. Thao tác hoạt động cả khi bắt đầu trên nút, không kéo nút và không sửa dữ liệu sơ đồ. Cuộn bằng con lăn và thanh cuộn vẫn dùng như trước.
+
+Bấm trực tiếp lên dây (vùng bấm được mở rộng), nhãn hoặc mục trong danh sách dây để chọn. Dây được chọn sáng và dày hơn, hai đầu được làm nổi bật, các dây khác được làm mờ. Khung thông tin hiển thị đầy đủ tên hai nút và ghi chú quan hệ, có nút **Xem hai đầu dây** để đưa chúng vào vùng nhìn và **Bỏ chọn**. Các nút không bị tự sắp xếp lại.
+
+Kiểm tra mô phỏng: `node test_canvas_navigation.cjs`; chưa kiểm thử trực quan bằng browser thật trong môi trường này.

@@ -31,7 +31,7 @@ function createApp({stored=null}={}){
  const sandbox={document:doc,window,console,crypto:require('node:crypto').webcrypto,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},matchMedia:()=>media,confirm:()=>true,requestAnimationFrame:fn=>{timers.set(++next,fn);return next;},cancelAnimationFrame:id=>timers.delete(id),setTimeout:fn=>{timers.set(++next,fn);return next;},clearTimeout:id=>timers.delete(id),AbortController,Blob,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},fetch:async()=>({ok:true,json:async()=>({models:[{name:'qwen:local'}]})})};
  const context=vm.createContext(sandbox);
  const run=code=>vm.runInContext(code,context);
- for(const script of ['theme-init.js','icons.js','runtime.js','project-data.js','characters.js','canvas.js','canvas-extras.js','writing-tools.js','app.js','projects.js','ui.js','agent-ui.js'])vm.runInContext(fs.readFileSync('static/'+script,'utf8'),context,{filename:script});
+ for(const script of ['theme-init.js','icons.js','runtime.js','project-data.js','characters.js','canvas.js','canvas-extras.js','canvas-navigation.js','writing-tools.js','app.js','projects.js','ui.js','agent-ui.js'])vm.runInContext(fs.readFileSync('static/'+script,'utf8'),context,{filename:script});
  return {context,run,$:id=>doc.getElementById(id),storage,document:doc,window,timers};
 }
 module.exports={createApp};
