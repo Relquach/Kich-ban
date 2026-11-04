@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict'),{createApp}=require('./test_dom.cjs');
+(async()=>{
+ const app=createApp(),{run,$}=app;
+ run('state.profiles=[newProfile("Tâm"),newProfile("Lan"),newProfile("Tú")];renderCharacters();view("canvas")');
+ $('openCanvasLibrary').click();$('libraryChapter').value=run('chapter().id');for(const c of $('libraryProfiles').querySelectorAll('input'))c.checked=true;$('insertCanvasReferences').click();assert.equal(run('state.story.nodes.length'),4);assert.equal(run('state.story.edges.length'),3);assert.equal(run('state.story.edges.every(e=>e.kind==="participation")'),true);
+ const chapterNode=run('state.story.nodes.find(n=>n.kind==="chapter").id');app.context.chapterNode=chapterNode;run('showCanvasMenu(chapterNode,30,30,null)');$('menuPin').click();assert.equal(run('storyNode(chapterNode).pinned'),true);run('showCanvasMenu(chapterNode,30,30,null)');$('menuHighlight').click();assert.equal(run('storyNode(chapterNode).highlighted'),true);
+ assert.throws(()=>run('applyStoryAction({type:"move_story_node",node_id:chapterNode,x:300,y:300})'),/ghim/);
+ run('showCanvasMenu(chapterNode,30,30,null)');$('menuSendAgent').click();assert.equal(run('captureAgentContext().canvas_attachments[0].reference.id'),run('chapter().id'));
+ run('chapter().title="Tên chương mới";renderCanvas()');assert.equal(run('storyNode(chapterNode).title'),'Tên chương mới');
+ run('state.story.nodes.push({id:"extra",title:"Sự kiện",description:"",kind:"event",x:1000,y:100});renderCanvas()');const port=$('storyNodes').children.at(-1).querySelector('.story-port');port.click();assert.equal(run('connectSource'),'extra');$('connectionTarget').value=chapterNode;$('connectionKind').value='reference';$('confirmConnection').click();assert.equal(run('state.story.edges.length'),4);
+ run('chapter().text="Tâm bước tới. Lan quay đi.";chapter().marks=[];render();selection={id:chapter().id,start:0,end:13,text:chapter().text.slice(0,13)}');$('markSelected').click();assert.equal(run('coloredPassages()[0].text'),'Tâm bước tới.');
+ run('const beforeCtx=captureAgentContext();const mid=chapter().marks[0].id;runAgentAction({type:"replace_marked_text",chapter_id:chapter().id,mark_id:mid,text:"Tâm run rẩy bước tới."},beforeCtx)');assert.equal(run('chapter().text'),'Tâm run rẩy bước tới. Lan quay đi.');assert.equal(run('coloredPassages()[0].text'),'Tâm run rẩy bước tới.');
+ run('commitWriterEdit(0,0,"Trước đó: ")');assert.equal(run('coloredPassages()[0].start'),10);assert.equal(run('coloredPassages()[0].text'),'Tâm run rẩy bước tới.');
+ $('undo').click();assert.equal(run('chapter().text'),'Tâm run rẩy bước tới. Lan quay đi.');assert.equal(run('coloredPassages()[0].start'),0);
+ assert.equal(run('findQuickWriter("/T",2).items.filter(i=>state.profiles.some(p=>p.id===i.id)).length'),2);
+ run('chapter().text="/T";chapter().marks=[];render();quickWriterState=findQuickWriter(chapter().text,2);chooseQuickWriter(0)');assert.equal(run('chapter().text'),'Tâm');
+ const e=$('editor');e.value='Tâm:';e.selectionStart=4;e.selectionEnd=4;e.fire('input');assert.equal($('quickDialogue').open,true);$('quickDialogueText').value='Cậu ổn chứ?';$('insertQuickDialogue').click();assert.ok(run('chapter().text').includes('Tâm: “Cậu ổn chứ?”'));
+ $('editorFont').value='serif';$('editorStyle').value='bolditalic';$('editorStyle').fire('change');assert.equal(run('state.editorStyle.style'),'bolditalic');
+ $('overview-synopsis').value='Tâm tìm Lan để làm rõ hiểu lầm.';$('overview-synopsis').fire('input');assert.equal(run('captureAgentContext().overview.synopsis'),'Tâm tìm Lan để làm rõ hiểu lầm.');
+ const saved=run('normalizeProject(JSON.parse(encodeProject(state)))');assert.equal(saved.editorStyle.family,'serif');assert.equal(saved.story.nodes.find(n=>n.id===chapterNode).pinned,true);assert.equal(saved.overview.synopsis,'Tâm tìm Lan để làm rõ hiểu lầm.');
+ console.log('Canvas/writer simulation passed: chapter→3 characters, ports, reference identity, menu pin/highlight, attachment content, color-scoped edits, mark remap/undo, /T and colon dialogue, font styles, overview and file round-trip.');
+})().catch(e=>{console.error(e);process.exit(1)});

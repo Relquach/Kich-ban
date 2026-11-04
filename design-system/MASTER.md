@@ -44,3 +44,11 @@ The author reported broken Vietnamese font rendering and an overly spacious inte
 Remove the outline/sort feature and old character-recognition/dialog UI. Use a global project profile editor and explicit profile-grounded generation. Story canvas is author-owned nodes/wires with semantic cause/turn/reveal/sequence edges, keyboard and numeric alternatives to dragging, a detail inspector and undo. The agent receives the structured graph and saved profiles, proposes allowlisted actions and requires author review. File save/open carries all project data; theme/font/zoom are local view preferences, not manuscript data.
 
 Verified by application startup, migration, graph editing, profile request and file round-trip simulations; bundled font cmap covers Vietnamese samples from the bug report. Real browser/device geometry and typography still need visual verification.
+
+## Revision: reference ports, authoring shortcuts and overview
+
+Use explicit (+) output ports with both drag-to-target and a target selector; node menus offer right-click, visible ⋯ and keyboard entry. Pins prevent movement; highlights add an outline and text badge, not color alone. Chapter/profile references carry source IDs, and participation edges have a separate semantic type from causes. Selected nodes attach structured data to agent chat.
+
+Authoring remains a native textarea with a noninteractive, aria-hidden mirror painting color spans. Annotation offsets use UTF-16 end-exclusive ranges and are remapped on edits. Color-specific agent changes operate on validated mark IDs and require a preview. Three bundled font families each have regular/bold/italic/bold-italic files; both textarea and mirror use the same font settings. The styles apply to the whole manuscript view, not inline rich text.
+
+The overview page exposes premise, synopsis and planned ending, saved with project data and sent to the agent. On mobile, six labeled destinations use two rows of three. Project schema v4 is backward-readable from v2/v3.

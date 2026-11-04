@@ -23,7 +23,7 @@ function toggleAgent(force){
  else{panel.hidden=true;$('agentLauncher').setAttribute('aria-expanded','false');if(panel.contains(document.activeElement))(agentOpener?.isConnected?agentOpener:$('agentLauncher')).focus({preventScroll:true});}
 }
 $('agentLauncher').onclick=()=>toggleAgent();$('sidebarAgent').onclick=()=>toggleAgent(true);$('agentMinimize').onclick=()=>toggleAgent(false);
-document.addEventListener('keydown',e=>{if(e.altKey&&e.key.toLowerCase()==='j'){e.preventDefault();toggleAgent();}else if(e.key==='Escape'&&!$('agentPanel').hidden){e.preventDefault();toggleAgent(false);}});
+document.addEventListener('keydown',e=>{if(e.defaultPrevented||['canvasLibrary','quickDialogue'].some(id=>$(id)?.open))return;if(e.altKey&&e.key.toLowerCase()==='j'){e.preventDefault();toggleAgent();}else if(e.key==='Escape'&&!$('agentPanel').hidden){e.preventDefault();toggleAgent(false);}});
 // A modeless panel: keep background keyboard targets visible instead of trapping focus.
 document.addEventListener('focusin',e=>{
  const panel=$('agentPanel');if(panel.hidden||panel.contains(e.target)||e.target===$('agentLauncher'))return;

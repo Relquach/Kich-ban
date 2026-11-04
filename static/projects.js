@@ -12,7 +12,7 @@ async function saveProjectFile(){
  finally{button.disabled=false;}
 }
 function applyOpenedProject(next,handle=null){
- state=next;projectFileHandle=handle;projectEpoch++;revision++;selection=null;cursor=0;pending=null;clearTimeout(timer);history.clear();undoChapter=null;resetCanvasSession();selectedProfileId=null;characterRequestSerial++;
+ $('quickDialogue').close();$('canvasLibrary').close();closeQuickWriter();quickDialogueTarget=null;state=next;projectFileHandle=handle;projectEpoch++;revision++;selection=null;cursor=0;pending=null;clearTimeout(timer);history.clear();undoChapter=null;resetCanvasSession();selectedProfileId=null;characterRequestSerial++;
  $('characterSuggestions').replaceChildren();$('characterStatus').textContent='';$('sceneContext').value='';$('resultBox').hidden=true;
  if(typeof retireAgentReview==='function'){retireAgentReview('Đã mở dự án khác.');agentHistory.length=0;$('agentMessages').replaceChildren();}
  render();renderSkills();save();draftStore.flush();view('write');models();

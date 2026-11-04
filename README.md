@@ -98,3 +98,47 @@ node test_workspace.cjs
 ```
 
 `test_dom.cjs` là mô phỏng DOM dùng trong test, không phải kiểm thử browser. Thiết kế tham khảo [UI/UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/blob/main/.claude/skills/ui-ux-pro-max/SKILL.md); quyết định mới ghi trong `design-system/MASTER.md`.
+
+## Bản cập nhật: canvas tham chiếu, viết nhanh, màu và kịch bản tổng
+
+### Canvas nối dây và menu nút
+
+- Dấu **+** ở cạnh phải mỗi nút: bấm rồi bấm nút đích, hoặc kéo dây từ dấu + tới nút đích. Thanh chọn mục tiêu có thể dùng bằng bàn phím, kèm loại quan hệ.
+- **Chương / Nhân vật**: chọn một chương và nhiều hồ sơ nhân vật để đưa vào canvas. Khi chọn nối tự động, app tạo dây **Tham gia chương** từ chương tới từng nhân vật. Ví dụ Chương 1 → Tâm, Lan, Tú. Thẻ tham chiếu dùng ID dữ liệu thật; đổi tên nguồn sẽ cập nhật tên hiển thị. Không sao chép hoặc thay nội dung chương/hồ sơ khi kéo thẻ.
+- Các dây **Tham gia chương** và **Tham chiếu** không được hiểu là quan hệ nhân quả. Vẫn có các loại nhân quả, cú ngoặt, hé lộ, tiếp diễn.
+- Chuột phải trên nút, nút **⋯**, hoặc Shift+F10 khi focus nút để mở menu: **Đưa cho agent, Nối tới mục tiêu, Mở dữ liệu gốc, Làm nổi bật, Ghim vị trí, Xóa**. Escape đóng; mũi tên lên/xuống di chuyển trong menu.
+- Ghim khóa vị trí, không khóa nội dung ghi chú hoặc dây nối. Bỏ ghim trước khi kéo, dùng mũi tên/tọa độ hoặc nhờ agent di chuyển. Ghim và nổi bật lưu trong file dự án.
+- **Đưa cho agent** thêm thẻ ngữ cảnh vào chat, chưa gửi yêu cầu. Bạn nhập yêu cầu rồi gửi. Chương đính kèm có nguyên văn tối đa 100k ký tự (nếu dài hơn có cờ truncated để agent biết giới hạn); thẻ nhân vật chứa hồ sơ đã lưu. Tối đa 6 thẻ mỗi lần. Agent vẫn đọc toàn bộ sơ đồ và hồ sơ như trước.
+- Khi xóa hồ sơ nhân vật, các thẻ liên kết hồ sơ trên canvas và dây liên quan được xóa cùng sau xác nhận; nội dung truyện giữ nguyên.
+- Cách tổ chức nút/tham chiếu/chat tham khảo tài liệu Topview Canvas; không cần tài khoản Topview, không dùng dịch vụ Topview hoặc gửi bản thảo sang đó. Đây không phải bản sao đầy đủ giao diện Topview.
+
+### Viết nhanh trong bản thảo
+
+- Gõ `/` ở đầu dòng hoặc sau khoảng trắng để mở danh sách nhân vật; `/T` lọc các tên có từ bắt đầu bằng T. Có lọc không dấu và hỗ trợ Đ/đ. Dùng ↑/↓ và Enter/Tab để chọn, Escape để đóng, hoặc bấm mục.
+- Chọn nhân vật sẽ chèn tên. Gõ `:` sau tên nhân vật ở đầu dòng (ví dụ `Tâm:`) để mở **ô nhập lời thoại**. Nhập rồi bấm Chèn. Có nút gợi ý theo hồ sơ và bạn chọn/sửa trước khi dùng. Dấu `:` trong giờ hoặc câu văn khác không tự mở ô thoại.
+- `/ngat` chèn dấu ngắt cảnh, `/ghichu` chèn khung ghi chú tác giả. Không tự gửi những thao tác này cho AI.
+
+### Đánh dấu màu và yêu cầu agent sửa đúng đoạn
+
+- Bôi đen văn bản → chọn màu → **Tô đoạn chọn**. **Bỏ màu** xóa màu trong đoạn chọn, không xóa chữ.
+- Đỏ (gợi ý dùng cho cảm xúc), xanh (môi trường/ánh sáng), vàng (cần kiểm tra), tím (hội thoại). Màu là nhãn do tác giả chủ động đặt, không phải AI tự nhận diện nội dung.
+- Agent nhận danh sách ID, tên màu, vị trí và nguyên văn các đoạn màu **trong chương hiện tại**. Ví dụ: “Bổ sung cảm xúc cho những đoạn màu đỏ”, “Thêm ánh sáng cho đoạn xanh”. **Nhờ agent theo màu** điền sẵn yêu cầu để bạn sửa và gửi.
+- Agent có công cụ riêng sửa đúng đoạn màu, không cần thay cả chương. Mọi đoạn thay đều có phần trước/sau và cần duyệt. Các phần văn bản bên ngoài được giữ.
+- Khi gõ/chèn chữ, vị trí màu được dịch theo thay đổi. Chèn trong đoạn màu kéo dài đoạn đó; sửa chồng lấn một phần có thể bỏ đánh dấu bị chồng lấn để tránh chỉ nhầm nội dung. Nút hoàn tác phục hồi cả chữ và màu.
+- Vẫn dùng textarea native cho soạn thảo; lớp mirror chỉ hiển thị nền màu. Copy/paste là văn bản thuần, không phải rich text HTML. Tối đa 500 đoạn màu mỗi chương; file dự án giữ các màu và vị trí.
+
+### Font và kiểu hiển thị
+
+Thanh trên bản thảo có **Noto Sans** (hiện đại), **Noto Serif** (văn chương), **Liberation Mono** (đơn cách); mỗi họ có thường, đậm, nghiêng và đậm nghiêng, tổng 12 kiểu font thật. WOFF2 đóng gói local, đủ ký tự tiếng Việt và dấu tổ hợp; tải font theo họ/kiểu đang dùng, không gọi Google Fonts. Giấy phép Liberation và Noto nằm trong `static/fonts`.
+
+Lựa chọn font và kiểu áp dụng cho **toàn bộ phần hiển thị bản thảo**, không định dạng nghiêng/đậm riêng từng từ, và lưu trong file dự án. Giao diện app vẫn dùng Noto Sans. Cỡ chữ và chủ đề tiếp tục là thiết lập trình duyệt như trước.
+
+### Kịch bản tổng
+
+Trang **Kịch bản tổng** có ý tưởng/xung đột chính, tóm tắt diễn biến toàn truyện và kết thúc dự kiến. Tác giả nhập, lưu tự động và xuất cùng dự án. Agent luôn nhận phần này cùng canvas, hồ sơ và chương hiện tại; có thể đề xuất cập nhật kịch bản tổng để bạn duyệt. Nút Agent hỗ trợ mở chat với yêu cầu kiểm tra tổng quan.
+
+Agent không mặc định đọc nguyên văn mọi chương; chỉ chương hiện tại và các chương được đính kèm qua canvas nằm trong ngữ cảnh. Kịch bản tổng giúp định hướng nhưng không thay cho toàn văn chưa đọc. Bản đầu không tự tóm tắt toàn bộ tiểu thuyết bằng một nút.
+
+File dự án mới có version 4; mở được file version 2/3 và JSON bản thảo cũ. App cũ có thể không mở được file version 4 — dùng bản mới khi mở lại.
+
+Kiểm tra bổ sung: `node test_canvas_writer.cjs` (mô phỏng, không phải browser QA), `python -m unittest -v test_agent_tools`. Chưa kiểm thử thao tác kéo dây, typography/mirror và IME trực quan trong browser thật ở môi trường này; cần kiểm tra trên máy dùng app. Chất lượng sinh văn bản vẫn tùy model Qwen.
