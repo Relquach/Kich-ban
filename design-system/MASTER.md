@@ -36,3 +36,11 @@ Debounce draft serialization/write 450ms; flush on pagehide/visibility hidden. D
 ## Verification limits
 
 API, execution and UI state tested with mocks. No browser automation tool was available in this environment, so responsive geometry, zoom, focus appearance and real model throughput still need browser/device verification. Do not describe simulated UI checks as browser QA or claim measured Qwen speed improvements.
+
+## Revision: compact workspace, character profiles, story graph, project files
+
+The author reported broken Vietnamese font rendering and an overly spacious interface. Replace all title/manuscript serif fonts with bundled **Noto Sans** (regular and bold, WOFF; Latin Extended, Vietnamese and combining marks included) and include license. Remove decorative hero text, lower header/section spacing and use plain page labels. Keep light/dark tokens, persistent floating agent and readable 17px manuscript default.
+
+Remove the outline/sort feature and old character-recognition/dialog UI. Use a global project profile editor and explicit profile-grounded generation. Story canvas is author-owned nodes/wires with semantic cause/turn/reveal/sequence edges, keyboard and numeric alternatives to dragging, a detail inspector and undo. The agent receives the structured graph and saved profiles, proposes allowlisted actions and requires author review. File save/open carries all project data; theme/font/zoom are local view preferences, not manuscript data.
+
+Verified by application startup, migration, graph editing, profile request and file round-trip simulations; bundled font cmap covers Vietnamese samples from the bug report. Real browser/device geometry and typography still need visual verification.

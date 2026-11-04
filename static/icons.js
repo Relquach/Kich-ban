@@ -1,5 +1,6 @@
 // Small local SVG set: no icon library or network dependency.
 const iconPaths={
+ graph:'M3 3h6v6H3V3Z M15 15h6v6h-6v-6Z M3 15h6v6H3v-6Z M6 9v6 M9 6h9v9 M9 18h6',
  feather:'M20 4c-5-2-10 0-12 5L4 20l11-4c5-2 7-7 5-12Z M4 20 16 8 M8 15h5 M11 10v5',
  book:'M4 4h12a4 4 0 0 1 4 4v13H8a4 4 0 0 1-4-4V4Z M4 17a4 4 0 0 1 4-4h12 M9 4v9',
  users:'M15 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2 M17 4a4 4 0 0 1 0 8 M21 21v-2a4 4 0 0 0-3-3.87 M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',

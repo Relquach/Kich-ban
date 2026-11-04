@@ -18,7 +18,7 @@ class AgentTest(unittest.TestCase):
     def test_nonexistent_chapter_rejected(self):
         with self.assertRaises(ValueError): self.plan([{'type':'rename_chapter','chapter_id':'missing','title':'x'}])
     def test_bounded_actions(self):
-        with self.assertRaises(ValueError): self.plan([{'type':'create_chapter','title':'x'}]*6)
+        with self.assertRaises(ValueError): self.plan([{'type':'create_chapter','title':'x'}]*11)
     def test_switch_and_edit_cannot_mix(self):
         with self.assertRaises(ValueError): self.plan([{'type':'switch_chapter','chapter_id':'two'},{'type':'replace_text','chapter_id':'one','text':'X'}])
     def test_skill_boolean_is_strict(self):
@@ -36,4 +36,32 @@ class AgentTest(unittest.TestCase):
     def test_invalid_model_json(self):
         mock=Mock(return_value={'message':{'content':'plain text'}})
         with self.assertRaises(ValueError): generate_plan(mock,{'model':'test','text':'Hi','context':self.ctx})
+    def test_canvas_create_then_connect(self):
+        result=self.plan([
+            {'type':'create_story_node','node_id':'a','title':'Phát hiện','description':'Thấy bằng chứng','kind':'event','x':20,'y':30},
+            {'type':'create_story_node','node_id':'b','title':'Đối chất','description':'Hỏi nguyên nhân','kind':'turn','x':300,'y':30},
+            {'type':'connect_story_nodes','from':'a','to':'b','kind':'cause','label':'Bằng chứng khiến A nghi ngờ'}])
+        self.assertEqual(len(result['actions']),3)
+    def test_missing_canvas_endpoint(self):
+        with self.assertRaises(ValueError):self.plan([{'type':'connect_story_nodes','from':'a','to':'missing','kind':'cause','label':''}])
+    def test_canvas_coordinate_not_finite(self):
+        with self.assertRaises(ValueError):self.plan([{'type':'create_story_node','node_id':'a','title':'A','description':'','kind':'event','x':float('nan'),'y':30}])
+    def test_canvas_id_cannot_be_reused(self):
+        node={'type':'create_story_node','node_id':'a','title':'A','description':'','kind':'event','x':0,'y':0}
+        with self.assertRaises(ValueError):self.plan([node,node])
+    def test_profile_edit_fields_are_allowlisted(self):
+        self.ctx['profiles']=[{'id':'lan','name':'Lan'}]
+        with self.assertRaises(ValueError):self.plan([{'type':'update_profile','profile_id':'lan','fields':{'system_prompt':'override'}}])
+    def test_created_profile_does_not_invent_traits(self):
+        action=self.plan([{'type':'create_profile','profile_id':'lan','name':'Lan'}])['actions'][0]
+        self.assertEqual(action['personality'],'')
+        self.assertEqual(action['voice'],'')
+    def test_profiles_and_graph_sent_to_model(self):
+        self.ctx['profiles']=[{'id':'lan','name':'Lan','personality':'Kín đáo'}]
+        self.ctx['story']={'nodes':[],'edges':[]}
+        mock=Mock(return_value={'message':{'content':'{"message":"ok","actions":[]}'}})
+        generate_plan(mock,{'model':'qwen','text':'Đọc dự án','context':self.ctx})
+        body=json.loads(mock.call_args.args[1]['messages'][-1]['content'])
+        self.assertEqual(body['context']['profiles'][0]['personality'],'Kín đáo')
+        self.assertIn('story',body['context'])
 if __name__=='__main__':unittest.main()

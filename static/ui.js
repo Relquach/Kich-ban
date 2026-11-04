@@ -13,8 +13,8 @@ $('themeToggle').onclick=()=>setTheme(document.documentElement.dataset.theme==='
 systemTheme.addEventListener('change',()=>{if(document.documentElement.dataset.themeChoice==='system')setTheme('system',false);});
 setTheme(document.documentElement.dataset.themeChoice||'system',false);
 let fontSaveTimer;
-function setEditorSize(value){const size=Math.max(16,Math.min(26,Number(value)||18));document.documentElement.style.setProperty('--editor-size',size+'px');$('fontSize').value=String(size);$('fontSizeValue').textContent=size+' px';}
-try{setEditorSize(localStorage.getItem('machvan-font-size')||18);}catch{setEditorSize(18);}
+function setEditorSize(value){const size=Math.max(16,Math.min(26,Number(value)||17));document.documentElement.style.setProperty('--editor-size',size+'px');$('fontSize').value=String(size);$('fontSizeValue').textContent=size+' px';}
+try{setEditorSize(localStorage.getItem('machvan-font-size')||17);}catch{setEditorSize(17);}
 $('fontSize').oninput=()=>{setEditorSize($('fontSize').value);clearTimeout(fontSaveTimer);fontSaveTimer=setTimeout(()=>{try{localStorage.setItem('machvan-font-size',$('fontSize').value);}catch{}},200);};
 let agentOpener=null;
 function toggleAgent(force){
@@ -23,7 +23,7 @@ function toggleAgent(force){
  else{panel.hidden=true;$('agentLauncher').setAttribute('aria-expanded','false');if(panel.contains(document.activeElement))(agentOpener?.isConnected?agentOpener:$('agentLauncher')).focus({preventScroll:true});}
 }
 $('agentLauncher').onclick=()=>toggleAgent();$('sidebarAgent').onclick=()=>toggleAgent(true);$('agentMinimize').onclick=()=>toggleAgent(false);
-document.addEventListener('keydown',e=>{if(e.altKey&&e.key.toLowerCase()==='j'){e.preventDefault();toggleAgent();}else if(e.key==='Escape'&&!$('agentPanel').hidden&&!$('dialogue').open){e.preventDefault();toggleAgent(false);}});
+document.addEventListener('keydown',e=>{if(e.altKey&&e.key.toLowerCase()==='j'){e.preventDefault();toggleAgent();}else if(e.key==='Escape'&&!$('agentPanel').hidden){e.preventDefault();toggleAgent(false);}});
 // A modeless panel: keep background keyboard targets visible instead of trapping focus.
 document.addEventListener('focusin',e=>{
  const panel=$('agentPanel');if(panel.hidden||panel.contains(e.target)||e.target===$('agentLauncher'))return;
@@ -32,7 +32,7 @@ document.addEventListener('focusin',e=>{
 });
 function updateAIStatus(){
  const working=aiRuntime.busy;
- document.querySelectorAll('[data-action],#detect').forEach(b=>b.disabled=working);
+ document.querySelectorAll('[data-action],[data-character-mode]').forEach(b=>b.disabled=working);
  $('agentSend').disabled=working;
  $('agentSend').textContent=working?'Đang xử lý…':'Gửi';
  $('agentLiveStatus').textContent=working?'Qwen đang xử lý yêu cầu…':(state.model?'Qwen local · Sẵn sàng hỗ trợ':'Chưa chọn model · Mở Cài đặt');

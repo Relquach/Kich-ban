@@ -34,10 +34,18 @@ class IntegrationTest(unittest.TestCase):
             payload=mock.call_args.args[1]
             self.assertEqual(payload['messages'][1]['content'],'Chỉ đoạn chọn')
             self.assertIn('Giữ giọng kể',payload['messages'][0]['content'])
-    def test_character_json_mode(self):
-        with patch.object(Handler,'ollama',return_value={'message':{'content':'{"characters":[]}'}}) as mock:
-            self.request('/api/assist',{'model':'test','text':'Tôi và Lan','action':'characters'}).close()
-            self.assertEqual(mock.call_args.args[1]['format'],'json')
+    def test_removed_outline_and_old_character_actions(self):
+        for action in ('outline','characters'):
+            with self.assertRaises(urllib.error.HTTPError) as c:
+                self.request('/api/assist',{'model':'test','text':'Nội dung','action':action})
+            self.assertEqual(c.exception.code,400)
+    def test_profile_grounded_character_endpoint(self):
+        response={'suggestions':[{'dialogue':'Cậu ổn chứ?','action':'','thought':'','reason':'Hỏi nhẹ vì kín đáo'}]}
+        with patch.object(Handler,'ollama',return_value={'message':{'content':json.dumps(response)}}) as mock:
+            with self.request('/api/character',{'model':'qwen','text':'Lan thấy bạn buồn','mode':'dialogue','profile':{'name':'Lan','personality':'Kín đáo','likes':'Trà'}}) as r:
+                self.assertEqual(json.load(r)['suggestions'][0]['dialogue'],'Cậu ổn chứ?')
+            payload=json.loads(mock.call_args.args[1]['messages'][-1]['content'])
+            self.assertEqual(payload['profile']['likes'],'Trà')
     def test_agent_endpoint(self):
         context={'chapters':[{'id':'one','title':'Một'}], 'current':{'id':'one','text':'Tôi gặp Lan'}, 'editing_scope':{'kind':'none'}}
         with patch.object(Handler,'ollama',return_value={'message':{'content':'{"message":"Mở kỹ năng","actions":[{"type":"navigate","view":"skills"}]}'}}):
