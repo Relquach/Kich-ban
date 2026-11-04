@@ -1,11 +1,15 @@
 // App agent: model proposes structured actions; the app owns execution and review.
 const agentHistory=[];
 let agentRunning=false;
+let activeAgentReview=null,agentScrollFrame=null;
+function recordAgentHistory(item){agentHistory.push({...item,content:item.content.slice(0,16000)});let chars=agentHistory.reduce((n,m)=>n+m.content.length,0);while(agentHistory.length>24||chars>120000){chars-=agentHistory.shift().content.length;}}
+function retireAgentReview(reason){if(activeAgentReview){const {apply,reject,status}=activeAgentReview;apply.disabled=true;reject.disabled=true;apply.onclick=null;reject.onclick=null;if(reason)status.textContent=reason;activeAgentReview=null;}}
+function appendAgentNode(node){const log=$('agentMessages');log.append(node);while(log.children.length>80)log.firstElementChild.remove();if($('agentPanel').hidden){$('agentNotification').hidden=false;return;}if(agentScrollFrame===null)agentScrollFrame=requestAnimationFrame(()=>{log.scrollTop=log.scrollHeight;agentScrollFrame=null;});}
 function updateAgentContext(){
   const sel=selection&&selection.id===chapter().id&&chapter().text.slice(selection.start,selection.end)===selection.text?selection:null;
   $('agentContext').textContent=`Chương: ${chapter().title}\nModel: ${state.model||'Chưa kết nối'}\nChế độ: ${state.auto?'Tự động':'Thủ công'}\nPhạm vi sửa: ${sel?sel.text.length+' ký tự đã chọn':state.auto?'Toàn chương':'Chưa chọn đoạn; chỉ trao đổi và điều khiển app'}`;
 }
-function agentMessage(role,text){const item=document.createElement('div');item.className='chat-message '+role;const label=document.createElement('span');label.className='chat-role';label.textContent=role==='user'?'BẠN':'MẠCH VĂN AGENT';const body=document.createElement('div');body.textContent=text;item.append(label,body);$('agentMessages').append(item);item.scrollIntoView({block:'nearest'});return item;}
+function agentMessage(role,text){const item=document.createElement('div');item.className='chat-message '+role;const label=document.createElement('span');label.className='chat-role';label.textContent=role==='user'?'BẠN':'MẠCH VĂN AGENT';const body=document.createElement('div');body.textContent=text;item.append(label,body);appendAgentNode(item);return item;}
 function agentSnapshot(){return JSON.stringify({chapters:state.chapters,skills:state.skills,custom:state.custom,current:state.current,auto:state.auto});}
 function captureAgentContext(){
   const c=chapter(),sel=selection&&selection.id===c.id&&c.text.slice(selection.start,selection.end)===selection.text?{...selection}:null;
@@ -44,36 +48,37 @@ function runAgentAction(a,context){
  return actionSummary(a);
 }
 function showAgentPlan(actions,context,snapshot){
+ retireAgentReview('Kế hoạch đã được thay bằng đề xuất mới.');
  const box=document.createElement('div');box.className='agent-plan';const heading=document.createElement('h2');heading.textContent='Đề xuất thay đổi · Chờ bạn duyệt';box.append(heading);
  actions.forEach(a=>{const p=document.createElement('p');p.textContent=actionSummary(a);box.append(p);if(a.type==='replace_text'){const before=document.createElement('pre'),after=document.createElement('pre');before.textContent='TRƯỚC\n'+context.editing_scope.text;after.textContent='SAU\n'+a.text;box.append(before,after);}});
  const apply=document.createElement('button'),reject=document.createElement('button'),status=document.createElement('p');apply.className='primary';apply.textContent='Duyệt và thực hiện';reject.className='plain';reject.textContent='Bỏ qua';
  apply.onclick=()=>{
- if(agentSnapshot()!==snapshot){apply.disabled=true;status.textContent='Trạng thái app đã thay đổi. Hãy gửi lại yêu cầu để tránh sửa nhầm.';agentHistory.push({role:'assistant',content:'Kế hoạch bị hủy vì ngữ cảnh đã thay đổi.'});return;}
+ if(agentSnapshot()!==snapshot){retireAgentReview();status.textContent='Trạng thái app đã thay đổi. Hãy gửi lại yêu cầu để tránh sửa nhầm.';recordAgentHistory({role:'assistant',content:'Kế hoạch bị hủy vì ngữ cảnh đã thay đổi.'});return;}
  // Preflight before any mutation; execution is synchronous on the captured state.
  if(actions.some(a=>a.chapter_id&&!state.chapters.some(c=>c.id===a.chapter_id))){status.textContent='Chương không tồn tại.';return;}
- try{const receipts=actions.map(a=>runAgentAction(a,context));apply.disabled=true;reject.disabled=true;status.textContent='Đã thực hiện:\n'+receipts.join('\n');agentHistory.push({role:'assistant',content:'App đã thực hiện: '+receipts.join('; ')});updateAgentContext();toast('Agent đã thực hiện thay đổi bạn duyệt.');}catch(e){apply.disabled=true;status.textContent=e.message;agentHistory.push({role:'assistant',content:'Thực thi bị dừng: '+e.message});}
+ try{const receipts=actions.map(a=>runAgentAction(a,context));retireAgentReview();status.textContent='Đã thực hiện:\n'+receipts.join('\n');recordAgentHistory({role:'assistant',content:'App đã thực hiện: '+receipts.join('; ')});updateAgentContext();toast('Agent đã thực hiện thay đổi bạn duyệt.');}catch(e){retireAgentReview();status.textContent=e.message;recordAgentHistory({role:'assistant',content:'Thực thi bị dừng: '+e.message});}
  };
- reject.onclick=()=>{apply.disabled=true;reject.disabled=true;status.textContent='Đã bỏ qua. Không thay đổi dữ liệu.';agentHistory.push({role:'assistant',content:'Tác giả đã bỏ qua kế hoạch.'});};box.append(apply,reject,status);$('agentMessages').append(box);box.scrollIntoView({block:'nearest'});
+ reject.onclick=()=>{retireAgentReview();status.textContent='Đã bỏ qua. Không thay đổi dữ liệu.';recordAgentHistory({role:'assistant',content:'Tác giả đã bỏ qua kế hoạch.'});};box.append(apply,reject,status);activeAgentReview={apply,reject,status};appendAgentNode(box);
 }
-$('selectForAgent').onclick=()=>view('write');document.querySelectorAll('.agent-example').forEach(b=>b.onclick=()=>{$('agentInput').value=b.textContent;$('agentInput').focus();});
-$('clearChat').onclick=()=>{if(agentRunning)return toast('Chờ agent hoàn tất yêu cầu hiện tại.');agentHistory.length=0;$('agentMessages').replaceChildren();agentMessage('assistant','Đã bắt đầu cuộc trò chuyện mới. Bạn muốn tôi hỗ trợ điều gì?');};
+$('selectForAgent').onclick=()=>{toggleAgent(false);view('write');$('editor').focus({preventScroll:true});};document.querySelectorAll('.agent-example').forEach(b=>b.onclick=()=>{$('agentInput').value=b.textContent;$('agentInput').focus();});
+$('clearChat').onclick=()=>{if(agentRunning)return toast('Chờ agent hoàn tất yêu cầu hiện tại.');retireAgentReview();agentHistory.length=0;$('agentMessages').replaceChildren();agentMessage('assistant','Đã bắt đầu cuộc trò chuyện mới. Bạn muốn tôi hỗ trợ điều gì?');};
 $('agentForm').onsubmit=async e=>{
- e.preventDefault();if(agentRunning)return;
+ e.preventDefault();if(agentRunning)return;if(aiRuntime.busy){toast('AI đang xử lý yêu cầu trước. Hãy chờ hoàn tất.');return;}$('agentError').hidden=true;
  if(!state.model){toast('Mở Ollama đã cài sẵn, rồi bấm kiểm tra kết nối.');view('settings');return;}
  const text=$('agentInput').value.trim();if(!text)return;
  const context=captureAgentContext(),snapshot=agentSnapshot(),previous=agentHistory.slice(-12);
- agentMessage('user',text);agentHistory.push({role:'user',content:text});$('agentInput').value='';agentRunning=true;clearTimeout(timer);$('agentSend').disabled=true;$('agentSend').textContent='Agent đang suy nghĩ…';
+ agentMessage('user',text);recordAgentHistory({role:'user',content:text});$('agentInput').value='';agentRunning=true;clearTimeout(timer);retireAgentReview('Đã gửi yêu cầu mới; kế hoạch trước không còn áp dụng.');
  try{
- const r=await fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:state.model,text,context,history:previous})});const d=await r.json();if(!r.ok)throw Error(d.error+(d.detail?' '+d.detail:''));
+ const wireContext={...context,editing_scope:{...context.editing_scope}};if(wireContext.editing_scope.kind==='chapter')delete wireContext.editing_scope.text;const d=await requestAI('/api/agent',{model:state.model,text,context:wireContext,history:previous});
  if(typeof d.message!=='string'||!Array.isArray(d.actions))throw Error('Phản hồi agent không hợp lệ.');
- agentMessage('assistant',d.message);agentHistory.push({role:'assistant',content:d.message+'\nKế hoạch (chưa thực hiện): '+JSON.stringify(d.actions)});
+ agentMessage('assistant',d.message);recordAgentHistory({role:'assistant',content:d.message+'\nKế hoạch (chưa thực hiện): '+JSON.stringify(d.actions)});
  if(d.actions.length){
- if(agentSnapshot()!==snapshot){agentMessage('assistant','Bản thảo hoặc trạng thái app đã thay đổi trong lúc xử lý. Tôi chưa thực hiện thao tác; hãy gửi lại yêu cầu.');agentHistory.push({role:'assistant',content:'App đã hủy kế hoạch do trạng thái thay đổi.'});return;}
+ if(agentSnapshot()!==snapshot){agentMessage('assistant','Bản thảo hoặc trạng thái app đã thay đổi trong lúc xử lý. Tôi chưa thực hiện thao tác; hãy gửi lại yêu cầu.');recordAgentHistory({role:'assistant',content:'App đã hủy kế hoạch do trạng thái thay đổi.'});return;}
  const immediate=d.actions.filter(a=>['navigate','switch_chapter'].includes(a.type)),changes=d.actions.filter(a=>!['navigate','switch_chapter'].includes(a.type));
  if(changes.length){showAgentPlan(changes,context,snapshot);if(immediate.length)agentMessage('assistant','Các thao tác chuyển trang/chương trong kế hoạch sẽ chưa chạy để giữ nguyên phạm vi chỉnh sửa. Bạn có thể yêu cầu mở trang ở lượt tiếp theo.');}
- else{const receipts=immediate.map(a=>runAgentAction(a,context));agentMessage('assistant','Đã thực hiện: '+receipts.join('; '));agentHistory.push({role:'assistant',content:'App đã thực hiện: '+receipts.join('; ')});toast(receipts.join('; '));}
+ else{const receipts=immediate.map(a=>runAgentAction(a,context));agentMessage('assistant','Đã thực hiện: '+receipts.join('; '));recordAgentHistory({role:'assistant',content:'App đã thực hiện: '+receipts.join('; ')});toast(receipts.join('; '));}
  }
- }catch(e){agentMessage('assistant','Chưa thực hiện: '+e.message);agentHistory.push({role:'assistant',content:'Yêu cầu thất bại, không thực hiện: '+e.message});}
- finally{agentRunning=false;$('agentSend').disabled=false;$('agentSend').textContent='Gửi cho agent ↗';updateAgentContext();}
+ }catch(e){$('agentError').textContent=e.message;$('agentError').hidden=false;agentMessage('assistant','Chưa thực hiện: '+e.message);recordAgentHistory({role:'assistant',content:'Yêu cầu thất bại, không thực hiện: '+e.message});}
+ finally{agentRunning=false;notifyAIStatus();updateAgentContext();}
 };
 agentMessage('assistant','Chào bạn. Tôi dùng model Qwen có sẵn trên Ollama để cùng bạn biên tập và điều khiển app. Bạn có thể yêu cầu mở kỹ năng, tạo chương, thêm nhân vật hoặc trau chuốt đoạn đã chọn. Bạn luôn duyệt trước khi tôi thay đổi dữ liệu.');

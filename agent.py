@@ -64,6 +64,11 @@ def generate_plan(ollama, payload):
     context = payload.get('context')
     if not isinstance(context,dict) or not isinstance(context.get('chapters'),list):
         raise ValueError('Thiếu ngữ cảnh app.')
+    current = context.get('current', {})
+    if not isinstance(current, dict) or not isinstance(current.get('text', ''), str):
+        raise ValueError('Ngữ cảnh chương không hợp lệ.')
+    if len(current.get('text', '')) > 100000:
+        raise ValueError('Chương quá dài cho lượt agent này (tối đa 100.000 ký tự). Hãy chia thành chương nhỏ hơn.')
     text = payload.get('text','')
     if not isinstance(text,str) or not text.strip(): raise ValueError('Nhập yêu cầu cho agent.')
     messages = [{'role':'system','content':SYSTEM}]
@@ -72,7 +77,9 @@ def generate_plan(ollama, payload):
         if isinstance(item,dict) and item.get('role') in ('user','assistant') and isinstance(item.get('content'),str):
             messages.append({'role':item['role'],'content':item['content'][:16000]})
     messages.append({'role':'user','content':json.dumps({'request':text,'context':context}, ensure_ascii=False)})
-    result = ollama('/api/chat', {'model':payload['model'],'stream':False,'think':False,'format':'json','messages':messages,'options':{'temperature':0.25}})
+    result = ollama('/api/chat', {'model':payload['model'],'keep_alive':'5m','stream':False,'think':False,'format':'json','messages':messages,'options':{'temperature':0.25}})
+    if result.get('done_reason') == 'length':
+        raise ValueError('Model hết giới hạn đầu ra. Hãy chia yêu cầu thành các phần nhỏ hơn.')
     try: value=json.loads(result.get('message',{}).get('content',''))
     except (json.JSONDecodeError, TypeError): raise ValueError('Model chưa trả JSON agent hợp lệ. Hãy thử lại.')
     return validate_plan(value,context)

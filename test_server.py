@@ -49,6 +49,33 @@ class IntegrationTest(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as c:
                 self.request('/api/agent',{'model':'installed-qwen','text':'Sửa','context':context})
             self.assertEqual(c.exception.code,400)
+    def test_concurrent_inference_is_rejected(self):
+        from concurrent.futures import ThreadPoolExecutor
+        entered, release = threading.Event(), threading.Event()
+        def slow_ollama(*args):
+            entered.set()
+            release.wait(3)
+            return {'message':{'content':'Đã sửa'}}
+        data={'model':'test','text':'Nội dung','action':'spelling'}
+        with patch.object(Handler,'ollama',side_effect=slow_ollama), ThreadPoolExecutor(max_workers=1) as pool:
+            first=pool.submit(self.request,'/api/assist',data)
+            try:
+                self.assertTrue(entered.wait(2))
+                with self.assertRaises(urllib.error.HTTPError) as c:
+                    self.request('/api/assist',data)
+                self.assertEqual(c.exception.code,429)
+            finally:
+                release.set()
+            first.result(timeout=2).close()
+    def test_truncated_text_is_not_offered_for_apply(self):
+        with patch.object(Handler,'ollama',return_value={'message':{'content':'Đoạn thiếu'},'done_reason':'length'}):
+            with self.assertRaises(urllib.error.HTTPError) as c:
+                self.request('/api/assist',{'model':'test','text':'Nội dung','action':'polish'})
+            self.assertEqual(c.exception.code,400)
+    def test_keep_model_warm(self):
+        with patch.object(Handler,'ollama',return_value={'message':{'content':'OK'}}) as mock:
+            self.request('/api/assist',{'model':'test','text':'Nội dung','action':'spelling'}).close()
+            self.assertEqual(mock.call_args.args[1]['keep_alive'],'5m')
     def test_invalid_action(self):
         with self.assertRaises(urllib.error.HTTPError) as c:
             self.request('/api/assist',{'model':'test','text':'text','action':'delete'})

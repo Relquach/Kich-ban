@@ -1,0 +1,2 @@
+// Before CSS: resolve the saved preference without flashing the opposite theme.
+(()=>{let choice='system';try{choice=localStorage.getItem('machvan-theme')||'system';}catch{}if(!['light','dark','system'].includes(choice))choice='system';document.documentElement.dataset.theme=choice==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):choice;document.documentElement.dataset.themeChoice=choice;})();
