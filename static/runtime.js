@@ -14,6 +14,6 @@ async function requestAI(path,payload){
  aiRuntime.busy=true;aiRuntime.controller=new AbortController();notifyAIStatus();
  const timeout=setTimeout(()=>aiRuntime.controller?.abort(),245000);
  try{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:aiRuntime.controller.signal});const data=await r.json();if(!r.ok)throw Error(data.error+(data.detail?' '+data.detail:''));return data;}
- catch(e){if(e.name==='AbortError')throw Error('Ollama xử lý quá lâu. Hãy chọn đoạn ngắn hơn rồi thử lại.');throw e;}
+ catch(e){if(e.name==='AbortError')throw Error('Máy chủ AI xử lý quá lâu. Hãy chọn đoạn ngắn hơn rồi thử lại.');throw e;}
  finally{clearTimeout(timeout);aiRuntime.busy=false;aiRuntime.controller=null;notifyAIStatus();}
 }

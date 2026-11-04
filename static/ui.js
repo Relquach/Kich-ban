@@ -35,7 +35,7 @@ function updateAIStatus(){
  document.querySelectorAll('[data-action],[data-character-mode]').forEach(b=>b.disabled=working);
  $('agentSend').disabled=working;
  $('agentSend').textContent=working?'Đang xử lý…':'Gửi';
- $('agentLiveStatus').textContent=working?'Đang xử lý…':(state.model?'Qwen local':'Chưa kết nối model');
+ $('agentLiveStatus').textContent=working?'Đang xử lý…':(state.model?(typeof apiProviderLabel==='function'?apiProviderLabel():'AI'):'Chưa chọn model');
  $('agentPanel').setAttribute('aria-busy',String(working));
 }
 updateAIStatus();

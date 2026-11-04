@@ -6,6 +6,7 @@ from pathlib import Path
 from agent import generate_plan
 from character_assist import suggest
 from turbo import generate_turbo
+from ai_provider import provider
 
 ROOT = Path(__file__).parent / 'static'
 OLLAMA = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434').rstrip('/')
@@ -24,27 +25,34 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
     def ollama(self, path, payload=None):
-        req = urllib.request.Request(OLLAMA + path, data=None if payload is None else json.dumps(payload).encode(), headers={'Content-Type':'application/json'})
-        with urllib.request.urlopen(req, timeout=240) as response:
-            return json.load(response)
+        return provider.call(path, payload)
     def do_GET(self):
+        if self.path == '/api/provider':return self.reply(200, provider.public())
         if self.path == '/api/models':
             try: self.reply(200, self.ollama('/api/tags'))
-            except Exception as e: self.reply(503, {'error':'Chưa kết nối được Ollama. Hãy chạy ollama serve trên máy chạy app.', 'detail':str(e)})
+            except Exception as e: self.reply(503, {'error':'Chưa lấy được danh sách model. Kiểm tra API/URL/khóa; có thể nhập model thủ công.', 'detail':provider.redact(e)})
         else: super().do_GET()
     def do_POST(self):
-        if self.path not in ('/api/assist', '/api/agent', '/api/character', '/api/turbo'): return self.reply(404, {'error':'Không tìm thấy'})
+        origin=self.headers.get('Origin')
+        if origin and origin not in ('http://'+self.headers.get('Host',''),'https://'+self.headers.get('Host','')):
+            return self.reply(403, {'error':'Chỉ cấu hình/gọi API từ trang app đang mở trên cùng máy chủ.'})
+        if self.path not in ('/api/assist', '/api/agent', '/api/character', '/api/turbo', '/api/provider'): return self.reply(404, {'error':'Không tìm thấy'})
         acquired = False
         try:
             size = int(self.headers.get('Content-Length', '0'))
             if not 0 < size <= 1_000_000: return self.reply(413, {'error':'Dữ liệu quá lớn hoặc trống'})
             p = json.loads(self.rfile.read(size))
+            if self.path == '/api/provider':
+                if not isinstance(p,dict):return self.reply(400, {'error':'Cấu hình không hợp lệ.'})
+                acquired=self.inference_lock.acquire(blocking=False)
+                if not acquired:return self.reply(409, {'error':'Chờ yêu cầu AI hoàn tất trước khi đổi API.'})
+                return self.reply(200, provider.configure(p))
             if not isinstance(p, dict) or not isinstance(p.get('model'), str) or not p['model'].strip() or not isinstance(p.get('text'), str) or not p['text'].strip(): return self.reply(400, {'error':'Chọn model và nhập nội dung trước.'})
             if len(p['text']) > 100000:
                 return self.reply(413, {'error':'Nội dung quá dài. Hãy chọn đoạn ngắn hơn (tối đa 100.000 ký tự mỗi lần).'})
             acquired = self.inference_lock.acquire(blocking=False)
             if not acquired:
-                return self.reply(429, {'error':'Ollama đang xử lý yêu cầu khác. Chờ hoàn tất rồi thử lại.'})
+                return self.reply(429, {'error':'AI đang xử lý yêu cầu khác. Chờ hoàn tất rồi thử lại.'})
             if self.path == '/api/agent':
                 return self.reply(200, generate_plan(self.ollama, p))
             if self.path == '/api/turbo':
@@ -68,8 +76,8 @@ class Handler(SimpleHTTPRequestHandler):
         except ValueError as e:
             self.reply(400, {'error':str(e)})
         except urllib.error.HTTPError as e:
-            self.reply(502, {'error':'Ollama từ chối yêu cầu. Kiểm tra model đã cài và phiên bản Ollama.', 'detail':e.read().decode()[:600]})
-        except Exception as e: self.reply(503, {'error':'Không thể xử lý với Ollama.', 'detail':str(e)})
+            self.reply(502, {'error':'Máy chủ AI từ chối yêu cầu. Kiểm tra URL, model, khóa và hỗ trợ JSON.', 'detail':provider.redact(e.read().decode(errors='replace'))[:600]})
+        except Exception as e: self.reply(503, {'error':'Không thể xử lý với API AI.', 'detail':provider.redact(e)})
         finally:
             if acquired: self.inference_lock.release()
 if __name__ == '__main__':

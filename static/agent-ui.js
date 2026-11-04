@@ -109,7 +109,7 @@ $('clearChat').onclick=()=>{if(agentRunning)return toast('Chờ agent hoàn tấ
 $('agentForm').onsubmit=async e=>{
  e.preventDefault();if(agentRunning)return;if(aiRuntime.busy){toast('AI đang xử lý yêu cầu trước. Hãy chờ hoàn tất.');return;}$('agentError').hidden=true;
  const turbo=$('agentMode').value==='turbo';const localNames=turbo&&isNameExpansion($('agentInput').value);
- if(!state.model&&!localNames){toast('Mở Ollama đã cài sẵn, rồi bấm kiểm tra kết nối.');view('settings');return;}
+ if(!state.model&&!localNames){toast('Cấu hình API và chọn model trong Cài đặt.');view('settings');return;}
  const text=$('agentInput').value.trim();if(!text)return;
  let context;try{context=turbo?turboScope():captureAgentContext();}catch(error){toast(error.message);return;}const snapshot=agentSnapshot(),previous=agentHistory.slice(-12);
  agentMessage('user',text);recordAgentHistory({role:'user',content:text});$('agentInput').value='';agentRunning=true;clearTimeout(timer);retireAgentReview('Đã gửi yêu cầu mới; kế hoạch trước không còn áp dụng.');

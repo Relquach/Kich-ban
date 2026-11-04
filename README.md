@@ -1,6 +1,6 @@
 # Mạch Văn — app viết local với Ollama
 
-Bạn là tác giả chính. AI hỗ trợ câu chữ, gợi ý theo hồ sơ nhân vật và thao tác canvas theo yêu cầu. App dùng Ollama và Qwen đã có trên máy, không tải lại model và không dùng dịch vụ AI đám mây.
+Bạn là tác giả chính. AI hỗ trợ câu chữ, gợi ý theo hồ sơ nhân vật và thao tác canvas theo yêu cầu. Mặc định app dùng Ollama và Qwen đã có trên máy; có thể cấu hình AI cloud hoặc máy chủ local tương thích OpenAI trong Cài đặt. Không tự tải model.
 
 ## Mở app trên Windows
 
@@ -182,3 +182,26 @@ Kiểm tra bổ sung: `node test_canvas_turbo.cjs`, `python -m unittest -v test_
 - Turbo là chế độ cho yêu cầu đơn giản nói chung; không gắn với một tác vụ ví dụ nào. Không có nút hoặc gợi ý riêng về mở rộng tên tắt. Bạn vẫn có thể yêu cầu tác vụ đó bằng lời khi cần, với cơ chế xử lý hiện có; điều này không ảnh hưởng giới hạn ngữ cảnh hoặc yêu cầu duyệt thay đổi.
 
 Kiểm tra mô phỏng: `node test_canvas_zoom_delete.cjs`; chưa kiểm thử trực quan giao diện bằng browser thật trong môi trường này.
+
+
+## API AI cloud và local
+
+Trong **Cài đặt → Kết nối AI**, chọn loại API, nhập Base URL, khóa nếu cần, rồi **Áp dụng kết nối API**. Chọn model chat từ danh sách hoặc nhập ID model thủ công và bấm **Dùng model này**. Cấu hình dùng chung cho agent, Turbo AI, sửa văn và gợi ý nhân vật; việc mở rộng bí danh local vẫn không gọi API.
+
+| Loại | Base URL ví dụ | Giao thức |
+| --- | --- | --- |
+| Ollama local | `http://127.0.0.1:11434` | `/api/tags`, `/api/chat` |
+| OpenAI cloud | `https://api.openai.com/v1` | Chat Completions |
+| LM Studio local | `http://127.0.0.1:1234/v1` | OpenAI-compatible |
+| vLLM local | `http://127.0.0.1:8000/v1` | OpenAI-compatible |
+| Cloud khác có API tương thích | URL do nhà cung cấp công bố, thường kết thúc `/v1` | OpenAI-compatible |
+
+App gọi `GET /models` và `POST /chat/completions` đối với OpenAI-compatible. API native khác như Anthropic Messages chưa có adapter riêng; cần endpoint/gateway tương thích Chat Completions. Không phải mọi model trong danh sách đều dùng được để chat — chọn đúng ID. Nếu máy chủ không hỗ trợ liệt kê, nhập ID thủ công. Nếu model không hỗ trợ `response_format: json_object`, bỏ chọn JSON mode; model vẫn cần trả JSON hợp lệ cho agent. Tham số/model chưa tương thích có thể bị máy chủ từ chối; app hiển thị lỗi thay vì tự chuyển nhà cung cấp.
+
+Khóa chỉ nằm trong bộ nhớ Python server, không trả lại cho trình duyệt, không nằm trong localStorage/file dự án/mã nguồn. Để trống khóa khi lưu lại cùng endpoint sẽ giữ khóa hiện có. Đổi loại hoặc URL sẽ xóa khóa cũ, trừ khi nhập khóa mới. Có tùy chọn xóa khóa. Khi dừng/khởi động lại server phải cấu hình lại; có thể dùng biến môi trường `AI_PROVIDER`, `AI_BASE_URL`, `AI_API_KEY` để khởi tạo (không commit file chứa khóa).
+
+Chọn cloud đồng nghĩa phần văn bản/ngữ cảnh cần xử lý được gửi tới endpoint đã chọn; chi phí theo tài khoản nhà cung cấp. App không gửi yêu cầu suy luận khi chỉ lưu cấu hình hoặc lấy danh sách model. Chọn Ollama local để xử lý trên máy như trước. Một server dùng chung cấu hình giữa các tab; đổi API bị chặn trong khi đang có suy luận.
+
+API backend hiện có: `GET /api/provider` (chỉ cấu hình công khai và trạng thái có khóa), `POST /api/provider` (áp dụng cấu hình trong bộ nhớ), `GET /api/models`, `POST /api/assist`, `/api/agent`, `/api/character`, `/api/turbo`. Server chỉ bind loopback, không phải API hosting công khai; POST từ trang web khác origin bị từ chối. Máy chủ API chuyển hướng sang host khác cũng bị chặn để tránh chuyển khóa ngoài endpoint đã chọn.
+
+Kiểm tra adapter và UI bằng mock: `python -m unittest -v test_ai_provider`, `node test_api_settings.cjs`. Chưa kiểm thử bằng tài khoản/key cloud thật, LM Studio hoặc vLLM thật trong môi trường này.

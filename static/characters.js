@@ -30,7 +30,7 @@ function initCharacters(){
 function suggestionText(option,profile,mode){const blocks=[];if(option.dialogue)blocks.push(profile.name+': “'+option.dialogue+'”');if(option.action)blocks.push(option.action);if(option.thought)blocks.push(profile.name+' nghĩ: '+option.thought);return blocks.join('\n');}
 async function suggestCharacter(mode,id,quick=false){
  if(aiRuntime.busy)return toast('AI đang xử lý yêu cầu trước.');
- if(!state.model){toast('Chọn model Ollama trong Cài đặt.');return view('settings');}
+ if(!state.model){toast('Chọn model AI trong Cài đặt.');return view('settings');}
  const profile=state.profiles.find(p=>p.id===id);if(!profile)return toast('Hồ sơ không tồn tại.');
  if(!['personality','voice','likes','goals','fears'].some(k=>profile[k].trim())){view('characters');selectedProfileId=id;renderCharacters();toast('Hãy bổ sung tính cách, giọng nói hoặc sở thích cho nhân vật trước.');return;}
  const c=chapter(),contextText=$('sceneContext').value.trim()||(selection?.id===c.id?selection.text:c.text);

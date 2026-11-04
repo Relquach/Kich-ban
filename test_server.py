@@ -94,6 +94,18 @@ class IntegrationTest(unittest.TestCase):
         with patch.object(Handler,'ollama',return_value={'message':{'content':'OK'}}) as mock:
             self.request('/api/assist',{'model':'test','text':'Nội dung','action':'spelling'}).close()
             self.assertEqual(mock.call_args.args[1]['keep_alive'],'5m')
+    def test_cross_origin_configuration_rejected(self):
+        req=urllib.request.Request(self.base+'/api/provider',data=b'{}',headers={'Content-Type':'application/json','Origin':'https://unrelated.invalid'})
+        with self.assertRaises(urllib.error.HTTPError) as c:urllib.request.urlopen(req)
+        self.assertEqual(c.exception.code,403)
+    def test_cloud_provider_routes_assist_without_returning_key(self):
+        from ai_provider import AIProvider
+        connection=AIProvider()
+        with patch('server.provider',connection), patch.object(connection,'request',return_value={'choices':[{'message':{'content':'Đã sửa qua API'},'finish_reason':'stop'}]}):
+            with self.request('/api/provider',{'provider':'compatible','base_url':'https://example.invalid/v1','api_key':'fake-integration-key'}) as r:
+                config=json.load(r);self.assertTrue(config['has_key']);self.assertNotIn('api_key',config)
+            with self.request('/api/assist',{'model':'cloud-model','text':'Đoạn cần sửa','action':'spelling'}) as r:
+                self.assertEqual(json.load(r)['text'],'Đã sửa qua API')
     def test_invalid_action(self):
         with self.assertRaises(urllib.error.HTTPError) as c:
             self.request('/api/assist',{'model':'test','text':'text','action':'delete'})
