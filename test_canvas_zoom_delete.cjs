@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict'),{createApp}=require('./test_dom.cjs');
+const app=createApp(),{run,$,document}=app;run('view("canvas");state.story.nodes=[{id:"a",title:"A",description:"",kind:"event",x:100,y:100},{id:"b",title:"B",description:"",kind:"event",x:500,y:400}];state.story.edges=[{id:"ab",from:"a",to:"b",kind:"cause",label:"A dẫn tới B"}];renderCanvas()');
+const vp=$('canvasViewport');vp.clientWidth=800;vp.clientHeight=500;vp.scrollLeft=250;vp.scrollTop=180;run('storyZoom=1');const before=run('JSON.stringify(state.story)');
+let prevented=false;vp.fire('wheel',{clientX:200,clientY:100,deltaY:-100,deltaMode:0,preventDefault(){prevented=true;}});assert.ok(prevented);const zoom=run('storyZoom');assert.ok(zoom>1);assert.ok(Math.abs((vp.scrollLeft+200)/zoom-450)<1e-8);assert.ok(Math.abs((vp.scrollTop+100)/zoom-280)<1e-8);assert.equal(run('JSON.stringify(state.story)'),before);
+vp.fire('wheel',{ctrlKey:true,deltaY:100,clientX:200,clientY:100});assert.equal(run('storyZoom'),zoom);
+vp.fire('wheel',{target:$('storyNodeDescription'),deltaY:100,clientX:200,clientY:100});assert.equal(run('storyZoom'),zoom);
+for(let i=0;i<30;i++)vp.fire('wheel',{deltaY:1000,clientX:200,clientY:100});assert.equal(run('storyZoom'),.4);
+run('selectStory("a")');document.fire('keydown',{key:'Delete',target:$('storyNodeTitle')});assert.equal(run('state.story.nodes.length'),2);
+document.fire('keydown',{key:'Delete',target:$('agentInput')});assert.equal(run('state.story.nodes.length'),2);
+run('view("write")');document.fire('keydown',{key:'Delete',target:document.body});assert.equal(run('state.story.nodes.length'),2);
+run('view("canvas")');document.fire('keydown',{key:'Delete',target:vp});assert.equal(run('state.story.nodes.length'),1);assert.equal(run('state.story.edges.length'),0);$('undoCanvas').click();assert.equal(run('state.story.nodes.length'),2);assert.equal(run('state.story.edges.length'),1);
+assert.equal($('turboExpandNames'),null);assert.equal($('agentModeHint'),null);assert.equal($('agentMode').closest('.agent-header')!==null,true);$('agentMode').value='turbo';$('agentMode').fire('change');assert.equal($('agentExamples').textContent.includes('viết tắt'),false);assert.equal(document.querySelector('.agent-suggestions').getAttribute('open'),null);
+console.log('Zoom/Delete/UI checks passed: cursor-centered wheel zoom, limits, native input/browser zoom isolation, safe Delete with undo, single header mode and no alias-specific controls.');

@@ -2,6 +2,27 @@ let canvasPan=null;
 function stopCanvasPan(){const vp=$('canvasViewport');if(!canvasPan)return;const id=canvasPan.id;canvasPan=null;vp.classList.toggle('panning',false);if(vp.hasPointerCapture(id))vp.releasePointerCapture(id);}
 function initCanvasNavigation(){
  const vp=$('canvasViewport');
+ vp.addEventListener('wheel',e=>{
+  // Leave browser zoom and scrolling inside the floating form to their native controls.
+  if(e.ctrlKey||e.metaKey||e.shiftKey||e.target.closest?.('.canvas-inspector'))return;
+  if(!e.deltaY)return;e.preventDefault();if(canvasPan)return;
+  const rect=vp.getBoundingClientRect(),px=e.clientX-rect.left-(vp.clientLeft||0),py=e.clientY-rect.top-(vp.clientTop||0);
+  const old=storyZoom,worldX=(vp.scrollLeft+px)/old,worldY=(vp.scrollTop+py)/old;
+  const units=e.deltaMode===1?16:e.deltaMode===2?(vp.clientHeight||500):1;
+  const delta=Math.max(-180,Math.min(180,e.deltaY*units));
+  storyZoom=Math.max(.4,Math.min(1.6,old*Math.exp(-delta*.002)));
+  if(storyZoom===old)return;resizeStoryStage();
+  vp.scrollLeft=Math.max(0,worldX*storyZoom-px);vp.scrollTop=Math.max(0,worldY*storyZoom-py);
+  if(typeof positionCanvasEditor==='function')positionCanvasEditor();
+ },{passive:false});
+ document.addEventListener('keydown',e=>{
+  if(e.key!=='Delete'||e.ctrlKey||e.metaKey||e.altKey||e.defaultPrevented||e.repeat||$('canvas').hidden||!selectedStoryNode||canvasPan)return;
+  const target=e.target||document.activeElement;
+  if(target?.isContentEditable||['input','textarea','select','[contenteditable]'].some(s=>target?.closest?.(s)))return;
+  if(['canvasLibrary','quickDialogue'].some(id=>$(id)?.open)||!$('canvasNodeMenu').hidden)return;
+  if(target!==document.body&&!vp.contains(target))return;
+  e.preventDefault();deleteCanvasNode(selectedStoryNode);
+ });
  vp.addEventListener('pointerdown',e=>{if(e.button!==1)return;e.preventDefault();e.stopPropagation();stopCanvasPan();canvasPan={id:e.pointerId,x:e.clientX,y:e.clientY,left:vp.scrollLeft,top:vp.scrollTop};closeCanvasMenu();vp.classList.toggle('panning',true);vp.setPointerCapture(e.pointerId);},true);
  vp.addEventListener('pointermove',e=>{if(!canvasPan||e.pointerId!==canvasPan.id)return;e.preventDefault();vp.scrollLeft=canvasPan.left-(e.clientX-canvasPan.x);vp.scrollTop=canvasPan.top-(e.clientY-canvasPan.y);});
  for(const type of ['pointerup','pointercancel','lostpointercapture'])vp.addEventListener(type,e=>{if(canvasPan&&e.pointerId===canvasPan.id)stopCanvasPan();});

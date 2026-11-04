@@ -14,7 +14,7 @@ function overviewContextStatus(){
 function refreshAgentExamples(){
  const current=$('agentMode').value==='turbo'?'turbo':agentCurrentView();if(current===agentExamplesView)return;agentExamplesView=current;
  const suggestions={
-  turbo:['Sửa chính tả trong đoạn đã chọn','Mở rộng tên viết tắt theo bí danh đã lưu'],
+  turbo:['Sửa chính tả trong đoạn đã chọn','Chuẩn hóa dấu câu trong đoạn đã chọn'],
   overview:['Đọc và góp ý cho kịch bản tổng','Gợi ý phát triển ý tưởng chính đã nhập'],
   canvas:['Kiểm tra quan hệ nhân quả trên canvas','Góp ý các cú ngoặt trên canvas'],
   characters:['Góp ý tính nhất quán của hồ sơ nhân vật','Gợi ý thoại theo hồ sơ nhân vật'],
@@ -27,14 +27,14 @@ function refreshAgentExamples(){
 }
 function updateAgentContext(){
  const sel=selection&&selection.id===chapter().id&&chapter().text.slice(selection.start,selection.end)===selection.text?selection:null;
- if($('agentMode').value==='turbo'){$('agentContextSummary').textContent='Turbo · Ngữ cảnh gọn';$('agentContext').textContent='Chỉ xử lý đoạn chọn (hoặc chương ở chế độ tự động). Mở rộng tên tắt chạy local; các việc khác gửi đoạn tối đa 6.000 ký tự và danh sách tên/bí danh. Không gửi canvas, tổng quan, hồ sơ dài hoặc lịch sử chat.';refreshAgentExamples();return;}
+ if($('agentMode').value==='turbo'){$('agentContextSummary').textContent='Turbo · Ngữ cảnh gọn';$('agentContext').textContent='Turbo xử lý yêu cầu đơn giản trên đoạn chọn (hoặc chương khi bật tự động), tối đa 6.000 ký tự. Không gửi tổng quan, canvas, hồ sơ dài hay lịch sử chat. Dùng cùng model nên vẫn có thể cần thời gian nạp model.';refreshAgentExamples();return;}
  const fields=['premise','synopsis','ending'].filter(k=>state.overview?.[k]?.trim()).length;
  $('agentContextSummary').textContent='Ngữ cảnh: Kịch bản tổng '+fields+'/3 mục · Canvas '+state.story.nodes.length+' nút';
  $('agentContext').textContent=`Sẽ gửi cùng mỗi yêu cầu:\nKịch bản tổng:\n${overviewContextStatus()}\nChương hiện tại: ${chapter().title}\nModel: ${state.model||'Chưa kết nối'}\nChế độ: ${state.auto?'Tự động':'Thủ công'}\nHồ sơ: ${state.profiles.length} nhân vật · Canvas: ${state.story.nodes.length} nút, ${state.story.edges.length} dây\nPhạm vi sửa: ${sel?sel.text.length+' ký tự đã chọn':state.auto?'Toàn chương':'Chưa chọn đoạn; chỉ trao đổi và điều khiển app'}`;
  refreshAgentExamples();
 }
 
-function agentMessage(role,text){const item=document.createElement('div');item.className='chat-message '+role;const label=document.createElement('span');label.className='chat-role';label.textContent=role==='user'?'BẠN':'MẠCH VĂN AGENT';const body=document.createElement('div');body.textContent=text;item.append(label,body);appendAgentNode(item);return item;}
+function agentMessage(role,text){const item=document.createElement('div');item.className='chat-message '+role;item.setAttribute('aria-label',role==='user'?'Bạn':'Trợ lý');const label=document.createElement('span');label.className='chat-role';label.textContent=role==='user'?'BẠN':'MẠCH VĂN AGENT';const body=document.createElement('div');body.textContent=text;item.append(label,body);appendAgentNode(item);return item;}
 function agentSnapshot(){syncStoryTitles();return JSON.stringify({chapters:state.chapters,skills:state.skills,custom:state.custom,current:state.current,auto:state.auto,overview:state.overview,profiles:state.profiles,story:state.story,project_epoch:projectEpoch});}
 function captureAgentContext(){
   const c=chapter(),sel=selection&&selection.id===c.id&&c.text.slice(selection.start,selection.end)===selection.text?{...selection}:null;
@@ -127,7 +127,7 @@ $('agentForm').onsubmit=async e=>{
  }catch(e){$('agentError').textContent=e.message;$('agentError').hidden=false;agentMessage('assistant','Chưa thực hiện: '+e.message);recordAgentHistory({role:'assistant',content:'Yêu cầu thất bại, không thực hiện: '+e.message});}
  finally{agentRunning=false;notifyAIStatus();updateAgentContext();}
 };
-agentMessage('assistant','Chào bạn. Tôi dùng model Qwen có sẵn trên Ollama để cùng bạn biên tập và điều khiển app. Tôi nhận kịch bản tổng, hồ sơ nhân vật, canvas và chương hiện tại trong mỗi yêu cầu để hỗ trợ bạn viết nhất quán. Bạn luôn duyệt trước khi tôi thay đổi dữ liệu.');
+agentMessage('assistant','Bạn muốn tôi hỗ trợ điều gì? Chọn Turbo cho việc ngắn, hoặc Đầy đủ khi cần ngữ cảnh câu chuyện.');
 
 updateAgentContext();
 
