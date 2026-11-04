@@ -38,6 +38,17 @@ class IntegrationTest(unittest.TestCase):
         with patch.object(Handler,'ollama',return_value={'message':{'content':'{"characters":[]}'}}) as mock:
             self.request('/api/assist',{'model':'test','text':'Tôi và Lan','action':'characters'}).close()
             self.assertEqual(mock.call_args.args[1]['format'],'json')
+    def test_agent_endpoint(self):
+        context={'chapters':[{'id':'one','title':'Một'}], 'current':{'id':'one','text':'Tôi gặp Lan'}, 'editing_scope':{'kind':'none'}}
+        with patch.object(Handler,'ollama',return_value={'message':{'content':'{"message":"Mở kỹ năng","actions":[{"type":"navigate","view":"skills"}]}'}}):
+            with self.request('/api/agent',{'model':'installed-qwen','text':'Mở kỹ năng','context':context}) as r:
+                self.assertEqual(json.load(r)['actions'][0]['view'],'skills')
+    def test_agent_rejects_unavailable_edit_scope(self):
+        context={'chapters':[{'id':'one','title':'Một'}], 'current':{'id':'one','text':'Tôi gặp Lan'}, 'editing_scope':{'kind':'none'}}
+        with patch.object(Handler,'ollama',return_value={'message':{'content':'{"message":"Sửa","actions":[{"type":"replace_text","chapter_id":"one","text":"Đã sửa"}]}'}}):
+            with self.assertRaises(urllib.error.HTTPError) as c:
+                self.request('/api/agent',{'model':'installed-qwen','text':'Sửa','context':context})
+            self.assertEqual(c.exception.code,400)
     def test_invalid_action(self):
         with self.assertRaises(urllib.error.HTTPError) as c:
             self.request('/api/assist',{'model':'test','text':'text','action':'delete'})

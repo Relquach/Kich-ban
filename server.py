@@ -3,6 +3,7 @@
 import json, os, urllib.request, urllib.error
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
+from agent import generate_plan
 
 ROOT = Path(__file__).parent / 'static'
 OLLAMA = os.environ.get('OLLAMA_URL', 'http://127.0.0.1:11434').rstrip('/')
@@ -26,12 +27,14 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e: self.reply(503, {'error':'Chưa kết nối được Ollama. Hãy chạy ollama serve trên máy chạy app.', 'detail':str(e)})
         else: super().do_GET()
     def do_POST(self):
-        if self.path != '/api/assist': return self.reply(404, {'error':'Không tìm thấy'})
+        if self.path not in ('/api/assist', '/api/agent'): return self.reply(404, {'error':'Không tìm thấy'})
         try:
             size = int(self.headers.get('Content-Length', '0'))
             if not 0 < size <= 1_000_000: return self.reply(413, {'error':'Dữ liệu quá lớn hoặc trống'})
             p = json.loads(self.rfile.read(size))
             if not p.get('model') or not p.get('text', '').strip(): return self.reply(400, {'error':'Chọn model và nhập nội dung trước.'})
+            if self.path == '/api/agent':
+                return self.reply(200, generate_plan(self.ollama, p))
             actions = {
                 'polish':'Trau chuốt câu chữ và nhịp văn, giữ nguyên ý, ngôi kể, sự kiện. Chỉ trả về đoạn văn đã sửa.',
                 'spelling':'Chỉ sửa chính tả và dấu câu, giữ nguyên văn phong, nội dung. Chỉ trả về đoạn đã sửa.',
@@ -46,10 +49,15 @@ class Handler(SimpleHTTPRequestHandler):
             if p['action']=='characters': payload['format']='json'
             result = self.ollama('/api/chat', payload)
             self.reply(200, {'text':result.get('message',{}).get('content','')})
+        except ValueError as e:
+            self.reply(400, {'error':str(e)})
         except urllib.error.HTTPError as e:
             self.reply(502, {'error':'Ollama từ chối yêu cầu. Kiểm tra model đã cài và phiên bản Ollama.', 'detail':e.read().decode()[:600]})
         except Exception as e: self.reply(503, {'error':'Không thể xử lý với Ollama.', 'detail':str(e)})
 if __name__ == '__main__':
     port = int(os.environ.get('PORT','8787'))
     print(f'Mạch Văn: http://127.0.0.1:{port}', flush=True)
+    if os.environ.get('OPEN_BROWSER') == '1':
+        import threading, webbrowser
+        threading.Timer(1, lambda: webbrowser.open(f'http://127.0.0.1:{port}')).start()
     ThreadingHTTPServer(('127.0.0.1',port),Handler).serve_forever()
