@@ -51,6 +51,16 @@ class IntegrationTest(unittest.TestCase):
         with patch.object(Handler,'ollama',return_value={'message':{'content':'{"message":"Mở kỹ năng","actions":[{"type":"navigate","view":"skills"}]}'}}):
             with self.request('/api/agent',{'model':'installed-qwen','text':'Mở kỹ năng','context':context}) as r:
                 self.assertEqual(json.load(r)['actions'][0]['view'],'skills')
+    def test_overview_reaches_ollama_when_canvas_is_empty(self):
+        overview={'premise':'Mai trở về quê để tìm sự thật.','synopsis':'','ending':''}
+        context={'chapters':[{'id':'one','title':'Khởi đầu'}], 'current':{'id':'one','text':''}, 'active_view':'overview', 'overview':overview, 'story':{'nodes':[],'edges':[]}, 'editing_scope':{'kind':'none'}}
+        with patch.object(Handler,'ollama',return_value={'message':{'content':'{"message":"Đã nhận ý tưởng chính","actions":[]}'}}) as mock:
+            with self.request('/api/agent',{'model':'qwen','text':'Đọc kịch bản tổng','context':context}) as r:
+                self.assertEqual(json.load(r)['actions'],[])
+            sent=json.loads(mock.call_args.args[1]['messages'][-1]['content'])
+            self.assertEqual(sent['context']['overview'],overview)
+            self.assertEqual(sent['context']['active_view'],'overview')
+            self.assertEqual(sent['context']['story'],{'nodes':[],'edges':[]})
     def test_agent_rejects_unavailable_edit_scope(self):
         context={'chapters':[{'id':'one','title':'Một'}], 'current':{'id':'one','text':'Tôi gặp Lan'}, 'editing_scope':{'kind':'none'}}
         with patch.object(Handler,'ollama',return_value={'message':{'content':'{"message":"Sửa","actions":[{"type":"replace_text","chapter_id":"one","text":"Đã sửa"}]}'}}):

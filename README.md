@@ -142,3 +142,12 @@ Agent không mặc định đọc nguyên văn mọi chương; chỉ chương hi
 File dự án mới có version 4; mở được file version 2/3 và JSON bản thảo cũ. App cũ có thể không mở được file version 4 — dùng bản mới khi mở lại.
 
 Kiểm tra bổ sung: `node test_canvas_writer.cjs` (mô phỏng, không phải browser QA), `python -m unittest -v test_agent_tools`. Chưa kiểm thử thao tác kéo dây, typography/mirror và IME trực quan trong browser thật ở môi trường này; cần kiểm tra trên máy dùng app. Chất lượng sinh văn bản vẫn tùy model Qwen.
+
+
+### Phân biệt Kịch bản tổng với canvas
+
+Kịch bản tổng luôn được gửi cùng mỗi yêu cầu agent, kể cả khi canvas chưa có nút hoặc dây. Chỉ nhập ý tưởng chính cũng đủ để hỏi AI về ý tưởng đó; tóm tắt diễn biến/kết thúc có thể còn trống. Nếu hỏi “Kiểm tra quan hệ nhân quả trên canvas”, agent sẽ kiểm tra sơ đồ và có thể báo canvas trống — điều đó không có nghĩa agent không truy cập được Kịch bản tổng.
+
+Nút gợi ý trong chat thay đổi theo trang đang mở. Tại Kịch bản tổng có “Đọc và góp ý cho kịch bản tổng”; tại canvas có “Kiểm tra quan hệ nhân quả trên canvas”. Nút **Agent hỗ trợ** trong Kịch bản tổng điền yêu cầu đọc phần tổng quan. Mục **Ngữ cảnh** trên chat cho biết có bao nhiêu ô tổng quan có nội dung và bao nhiêu nút canvas; mở mục này để xem từng ô đã nhập/chưa nhập. Đây là thông tin app gửi, không phải bảo đảm model đã hiểu đúng.
+
+Kiểm tra đường truyền dữ liệu bằng mô phỏng: `node test_overview_context.cjs`, và kiểm tra API tương ứng trong `test_server.py`. Chưa kiểm thử phản hồi của Qwen thật trong môi trường này.

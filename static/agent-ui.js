@@ -5,15 +5,38 @@ let activeAgentReview=null,agentScrollFrame=null;
 function recordAgentHistory(item){agentHistory.push({...item,content:item.content.slice(0,16000)});let chars=agentHistory.reduce((n,m)=>n+m.content.length,0);while(agentHistory.length>24||chars>120000){chars-=agentHistory.shift().content.length;}}
 function retireAgentReview(reason){if(activeAgentReview){const {apply,reject,status}=activeAgentReview;apply.disabled=true;reject.disabled=true;apply.onclick=null;reject.onclick=null;if(reason)status.textContent=reason;activeAgentReview=null;}}
 function appendAgentNode(node){const log=$('agentMessages');log.append(node);while(log.children.length>80)log.firstElementChild.remove();if($('agentPanel').hidden){$('agentNotification').hidden=false;return;}if(agentScrollFrame===null)agentScrollFrame=requestAnimationFrame(()=>{log.scrollTop=log.scrollHeight;agentScrollFrame=null;});}
-function updateAgentContext(){
-  const sel=selection&&selection.id===chapter().id&&chapter().text.slice(selection.start,selection.end)===selection.text?selection:null;
-  $('agentContext').textContent=`Chương: ${chapter().title}\nModel: ${state.model||'Chưa kết nối'}\nChế độ: ${state.auto?'Tự động':'Thủ công'}\nHồ sơ: ${state.profiles.length} nhân vật · Canvas: ${state.story.nodes.length} nút, ${state.story.edges.length} dây\nPhạm vi sửa: ${sel?sel.text.length+' ký tự đã chọn':state.auto?'Toàn chương':'Chưa chọn đoạn; chỉ trao đổi và điều khiển app'}`;
+let agentExamplesView=null;
+function agentCurrentView(){return Array.from(document.querySelectorAll('.view')).find(v=>!v.hidden)?.id||'write';}
+function overviewContextStatus(){
+ const overview=state.overview||{},labels={premise:'Ý tưởng chính',synopsis:'Tóm tắt diễn biến',ending:'Kết thúc dự kiến'};
+ return Object.entries(labels).map(([key,label])=>label+': '+(overview[key]?.trim()?'có nội dung ('+overview[key].length+' ký tự)':'chưa nhập')).join('\n');
 }
+function refreshAgentExamples(){
+ const current=agentCurrentView();if(current===agentExamplesView)return;agentExamplesView=current;
+ const suggestions={
+  overview:['Đọc và góp ý cho kịch bản tổng','Gợi ý phát triển ý tưởng chính đã nhập'],
+  canvas:['Kiểm tra quan hệ nhân quả trên canvas','Góp ý các cú ngoặt trên canvas'],
+  characters:['Góp ý tính nhất quán của hồ sơ nhân vật','Gợi ý thoại theo hồ sơ nhân vật'],
+  write:['Góp ý chương hiện tại dựa trên kịch bản tổng','Mở phần kỹ năng AI'],
+  skills:['Gợi ý kỹ năng phù hợp với kịch bản tổng','Mở bản thảo'],
+  settings:['Mở kịch bản tổng','Mở bản thảo']
+ }[current]||[];
+ const box=$('agentExamples');box.replaceChildren();
+ for(const text of suggestions){const button=document.createElement('button');button.className='agent-example';button.textContent=text;button.onclick=()=>{$('agentInput').value=text;$('agentInput').focus();};box.append(button);}
+}
+function updateAgentContext(){
+ const sel=selection&&selection.id===chapter().id&&chapter().text.slice(selection.start,selection.end)===selection.text?selection:null;
+ const fields=['premise','synopsis','ending'].filter(k=>state.overview?.[k]?.trim()).length;
+ $('agentContextSummary').textContent='Ngữ cảnh: Kịch bản tổng '+fields+'/3 mục · Canvas '+state.story.nodes.length+' nút';
+ $('agentContext').textContent=`Sẽ gửi cùng mỗi yêu cầu:\nKịch bản tổng:\n${overviewContextStatus()}\nChương hiện tại: ${chapter().title}\nModel: ${state.model||'Chưa kết nối'}\nChế độ: ${state.auto?'Tự động':'Thủ công'}\nHồ sơ: ${state.profiles.length} nhân vật · Canvas: ${state.story.nodes.length} nút, ${state.story.edges.length} dây\nPhạm vi sửa: ${sel?sel.text.length+' ký tự đã chọn':state.auto?'Toàn chương':'Chưa chọn đoạn; chỉ trao đổi và điều khiển app'}`;
+ refreshAgentExamples();
+}
+
 function agentMessage(role,text){const item=document.createElement('div');item.className='chat-message '+role;const label=document.createElement('span');label.className='chat-role';label.textContent=role==='user'?'BẠN':'MẠCH VĂN AGENT';const body=document.createElement('div');body.textContent=text;item.append(label,body);appendAgentNode(item);return item;}
 function agentSnapshot(){syncStoryTitles();return JSON.stringify({chapters:state.chapters,skills:state.skills,custom:state.custom,current:state.current,auto:state.auto,overview:state.overview,profiles:state.profiles,story:state.story,project_epoch:projectEpoch});}
 function captureAgentContext(){
   const c=chapter(),sel=selection&&selection.id===c.id&&c.text.slice(selection.start,selection.end)===selection.text?{...selection}:null;
-  return {project_epoch:projectEpoch,overview:state.overview,profiles:profileKnowledge(),story:canvasAgentGraph(),canvas_attachments:canvasAttachmentData(),colored_passages:coloredPassages(c),chapters:state.chapters.map(c=>({id:c.id,title:c.title})),current:{id:c.id,title:c.title,text:c.text,characters:state.profiles.map(p=>p.name)},editing_scope:sel?{kind:'selection',...sel}:state.auto?{kind:'chapter',start:0,end:c.text.length,text:c.text}:{kind:'none'},skills:skillDefs.filter(s=>state.skills.includes(s[0])).map(s=>({id:s[0],instruction:s[2]})),custom_style:state.custom};
+  return {project_epoch:projectEpoch,active_view:agentCurrentView(),overview:{premise:state.overview?.premise||'',synopsis:state.overview?.synopsis||'',ending:state.overview?.ending||''},profiles:profileKnowledge(),story:canvasAgentGraph(),canvas_attachments:canvasAttachmentData(),colored_passages:coloredPassages(c),chapters:state.chapters.map(c=>({id:c.id,title:c.title})),current:{id:c.id,title:c.title,text:c.text,characters:state.profiles.map(p=>p.name)},editing_scope:sel?{kind:'selection',...sel}:state.auto?{kind:'chapter',start:0,end:c.text.length,text:c.text}:{kind:'none'},skills:skillDefs.filter(s=>state.skills.includes(s[0])).map(s=>({id:s[0],instruction:s[2]})),custom_style:state.custom};
 }
 function actionSummary(a){
  const c=state.chapters.find(c=>c.id===a.chapter_id);const title=c?.title||'';
@@ -79,7 +102,7 @@ function showAgentPlan(actions,context,snapshot){
  };
  reject.onclick=()=>{retireAgentReview();status.textContent='Đã bỏ qua. Không thay đổi dữ liệu.';recordAgentHistory({role:'assistant',content:'Tác giả đã bỏ qua kế hoạch.'});};box.append(apply,reject,status);activeAgentReview={apply,reject,status};appendAgentNode(box);
 }
-$('selectForAgent').onclick=()=>{toggleAgent(false);view('write');$('editor').focus({preventScroll:true});};document.querySelectorAll('.agent-example').forEach(b=>b.onclick=()=>{$('agentInput').value=b.textContent;$('agentInput').focus();});
+$('selectForAgent').onclick=()=>{toggleAgent(false);view('write');$('editor').focus({preventScroll:true});};
 $('clearChat').onclick=()=>{if(agentRunning)return toast('Chờ agent hoàn tất yêu cầu hiện tại.');retireAgentReview();agentHistory.length=0;$('agentMessages').replaceChildren();agentMessage('assistant','Đã bắt đầu cuộc trò chuyện mới. Bạn muốn tôi hỗ trợ điều gì?');};
 $('agentForm').onsubmit=async e=>{
  e.preventDefault();if(agentRunning)return;if(aiRuntime.busy){toast('AI đang xử lý yêu cầu trước. Hãy chờ hoàn tất.');return;}$('agentError').hidden=true;
@@ -101,4 +124,6 @@ $('agentForm').onsubmit=async e=>{
  }catch(e){$('agentError').textContent=e.message;$('agentError').hidden=false;agentMessage('assistant','Chưa thực hiện: '+e.message);recordAgentHistory({role:'assistant',content:'Yêu cầu thất bại, không thực hiện: '+e.message});}
  finally{agentRunning=false;notifyAIStatus();updateAgentContext();}
 };
-agentMessage('assistant','Chào bạn. Tôi dùng model Qwen có sẵn trên Ollama để cùng bạn biên tập và điều khiển app. Tôi đọc hồ sơ nhân vật và canvas, hỗ trợ tạo nút, nối dây và biên tập đoạn đã chọn. Bạn luôn duyệt trước khi tôi thay đổi dữ liệu.');
+agentMessage('assistant','Chào bạn. Tôi dùng model Qwen có sẵn trên Ollama để cùng bạn biên tập và điều khiển app. Tôi nhận kịch bản tổng, hồ sơ nhân vật, canvas và chương hiện tại trong mỗi yêu cầu để hỗ trợ bạn viết nhất quán. Bạn luôn duyệt trước khi tôi thay đổi dữ liệu.');
+
+updateAgentContext();
