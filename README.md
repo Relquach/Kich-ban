@@ -121,8 +121,8 @@ node test_workspace.cjs
 ### Đánh dấu màu và yêu cầu agent sửa đúng đoạn
 
 - Bôi đen văn bản → chọn màu → **Tô đoạn chọn**. **Bỏ màu** xóa màu trong đoạn chọn, không xóa chữ.
-- Đỏ (gợi ý dùng cho cảm xúc), xanh (môi trường/ánh sáng), vàng (cần kiểm tra), tím (hội thoại). Màu là nhãn do tác giả chủ động đặt, không phải AI tự nhận diện nội dung.
-- Agent nhận danh sách ID, tên màu, vị trí và nguyên văn các đoạn màu **trong chương hiện tại**. Ví dụ: “Bổ sung cảm xúc cho những đoạn màu đỏ”, “Thêm ánh sáng cho đoạn xanh”. **Nhờ agent theo màu** điền sẵn yêu cầu để bạn sửa và gửi.
+- Đỏ, xanh, vàng, tím chỉ là nhãn phân biệt các đoạn văn; không màu nào có chức năng cố định. Bạn nói cần làm gì với từng màu trong mỗi yêu cầu. Cùng một màu có thể phục vụ nhiệm vụ khác ở lượt sau.
+- Agent nhận danh sách ID, tên màu thuần túy, vị trí và nguyên văn các đoạn màu **trong chương hiện tại**. Ví dụ: “Thêm ánh sáng cho đoạn đỏ”, “Sửa thoại ở đoạn xanh”; ở lượt sau bạn có thể yêu cầu “Rút gọn đoạn đỏ”. **Nhờ agent theo màu** mở chat, chỉ gợi sẵn phần chọn màu nếu ô chat đang trống; bạn tự viết nhiệm vụ rồi gửi. Nội dung đang nhập được giữ nguyên. Nếu chưa nói cần làm gì, agent được chỉ dẫn hỏi lại, không tự chọn việc theo màu.
 - Agent có công cụ riêng sửa đúng đoạn màu, không cần thay cả chương. Mọi đoạn thay đều có phần trước/sau và cần duyệt. Các phần văn bản bên ngoài được giữ.
 - Khi gõ/chèn chữ, vị trí màu được dịch theo thay đổi. Chèn trong đoạn màu kéo dài đoạn đó; sửa chồng lấn một phần có thể bỏ đánh dấu bị chồng lấn để tránh chỉ nhầm nội dung. Nút hoàn tác phục hồi cả chữ và màu.
 - Vẫn dùng textarea native cho soạn thảo; lớp mirror chỉ hiển thị nền màu. Copy/paste là văn bản thuần, không phải rich text HTML. Tối đa 500 đoạn màu mỗi chương; file dự án giữ các màu và vị trí.

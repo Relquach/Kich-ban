@@ -52,3 +52,8 @@ Use explicit (+) output ports with both drag-to-target and a target selector; no
 Authoring remains a native textarea with a noninteractive, aria-hidden mirror painting color spans. Annotation offsets use UTF-16 end-exclusive ranges and are remapped on edits. Color-specific agent changes operate on validated mark IDs and require a preview. Three bundled font families each have regular/bold/italic/bold-italic files; both textarea and mirror use the same font settings. The styles apply to the whole manuscript view, not inline rich text.
 
 The overview page exposes premise, synopsis and planned ending, saved with project data and sent to the agent. On mobile, six labeled destinations use two rows of three. Project schema v4 is backward-readable from v2/v3.
+
+
+## Color labels are task-neutral
+
+Red, blue, yellow and purple identify text ranges only. Palette labels and agent metadata contain color names without editorial meanings. The color action opens chat with a neutral scope prefix only when the composer is empty, and preserves an existing draft. The author defines the task in each request; no persistent or implicit color-to-task mapping is applied. The agent is instructed to ask what to do when a color is mentioned without a task. Existing saved marks retain their IDs, colors and offsets; no project migration is needed.
