@@ -27,7 +27,7 @@ Bản thảo local dùng cùng khóa `machvan-v1`. Danh sách tên nhân vật c
 
 ## Bản thảo và giao diện
 
-- Chương ở thanh bên. Đổi tên chương bằng ô tiêu đề, thêm chương bằng dấu cộng.
+- Chương ở thanh bên. Đổi tên chương bằng ô tiêu đề, thêm chương bằng dấu cộng. Nút thùng rác cạnh mỗi chương cho phép xóa sau khi xác nhận; các thẻ chương trên canvas và dây liên quan cũng được bỏ. Chọn **Hoàn tác xóa chương** để khôi phục lần xóa gần nhất trong phiên; mở dự án khác hoặc tải lại trang sẽ kết thúc khả năng hoàn tác này. Xóa chương cuối cùng sẽ tạo một chương trống. Lưu file dự án nếu muốn giữ một bản riêng trước khi xóa.
 - Thủ công: bôi đen đoạn rồi chọn trau chuốt hoặc sửa chính tả. Chỉ đoạn chọn được sửa khi bấm **Áp dụng**.
 - Tự động: sau 3 giây ngừng gõ, AI đề xuất chính tả toàn chương; không tự thay chữ. Gợi mở hướng đi là lời khuyên, không tự viết tiếp.
 - **Đã bỏ tính năng sắp xếp bố cục** và mục nhận diện tên/hộp thoại cũ.

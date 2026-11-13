@@ -38,3 +38,44 @@ function normalizeProject(input){
  return {overview:summary,editorStyle:{family:editorStyle.family,style:editorStyle.style},projectName:textValue(raw.projectName??'Dự án chưa đặt tên',200),chapters,current:raw.current,profiles,story:{nodes,edges},skills:[...new Set(raw.skills)],custom:textValue(raw.custom??'',8000),model:textValue(raw.model??'',200),auto:!!raw.auto};
 }
 function encodeProject(project){return JSON.stringify({format:'machvan-project',version:4,savedAt:new Date().toISOString(),project},null,2);}
+
+// Chapter removal keeps reference cards and their wires consistent with the manuscript.
+function removeProjectChapter(project,id,makeId=()=>crypto.randomUUID()){
+ const index=project.chapters.findIndex(c=>c.id===id);
+ if(index<0)return null;
+ const activeId=project.chapters[project.current].id;
+ const removed=JSON.parse(JSON.stringify(project.chapters[index]));
+ const nodes=project.story.nodes.filter(n=>n.kind==='chapter'&&n.refId===id);
+ const nodeIds=new Set(nodes.map(n=>n.id));
+ const edges=project.story.edges.filter(e=>nodeIds.has(e.from)||nodeIds.has(e.to));
+ let placeholder=null;
+ if(project.chapters.length===1)placeholder={id:makeId(),title:'Chương mới',text:'',marks:[]};
+ const record=JSON.parse(JSON.stringify({chapter:removed,index,nodes,edges,placeholder}));
+ project.chapters.splice(index,1);
+ if(placeholder)project.chapters.push(placeholder);
+ const activeIndex=project.chapters.findIndex(c=>c.id===activeId);
+ project.current=activeIndex>=0?activeIndex:Math.min(index,project.chapters.length-1);
+ project.story.nodes=project.story.nodes.filter(n=>!nodeIds.has(n.id));
+ project.story.edges=project.story.edges.filter(e=>!nodeIds.has(e.from)&&!nodeIds.has(e.to));
+ return record;
+}
+function restoreProjectChapter(project,record){
+ if(!record)throw Error('Chưa có chương đã xóa để hoàn tác.');
+ if(project.chapters.some(c=>c.id===record.chapter.id))throw Error('Chương này đã tồn tại.');
+ const placeholderIndex=record.placeholder?project.chapters.findIndex(c=>c.id===record.placeholder.id&&JSON.stringify(c)===JSON.stringify(record.placeholder)):-1;
+ if(project.chapters.length-(placeholderIndex>=0?1:0)>=500)throw Error('Dự án đã có 500 chương. Hãy bớt một chương trước khi hoàn tác.');
+ const existingNodes=new Set(project.story.nodes.map(n=>n.id)),existingEdges=new Set(project.story.edges.map(e=>e.id));
+ if(record.nodes.some(n=>existingNodes.has(n.id))||record.edges.some(e=>existingEdges.has(e.id)))throw Error('ID trên canvas đã được dùng lại. Chưa thể khôi phục chương an toàn.');
+ const restoredNodes=JSON.parse(JSON.stringify(record.nodes));
+ const validIds=new Set([...existingNodes,...restoredNodes.map(n=>n.id)]);
+ // Another endpoint may have been deleted since the chapter was removed.
+ const restoredEdges=JSON.parse(JSON.stringify(record.edges.filter(e=>validIds.has(e.from)&&validIds.has(e.to))));
+ if(project.story.nodes.length+restoredNodes.length>500||project.story.edges.length+restoredEdges.length>1500)throw Error('Canvas đã đầy. Hãy bớt nút hoặc dây trước khi hoàn tác.');
+ if(placeholderIndex>=0)project.chapters.splice(placeholderIndex,1);
+ const index=Math.min(record.index,project.chapters.length);
+ project.chapters.splice(index,0,JSON.parse(JSON.stringify(record.chapter)));
+ project.current=index;
+ project.story.nodes.push(...restoredNodes);
+ project.story.edges.push(...restoredEdges);
+ return {skippedEdges:record.edges.length-restoredEdges.length};
+}

@@ -25,7 +25,59 @@ function remember(group=false){
 }
 let countTimer;
 function scheduleCounts(){clearTimeout(countTimer);countTimer=setTimeout(()=>{counts();if(typeof updateAgentContext==='function'&&!$('agentPanel').hidden)updateAgentContext();},180);}
-function renderChapters(){const box=$('chapters');box.replaceChildren();state.chapters.forEach((c,i)=>{const b=document.createElement('button');b.className='chapter'+(i===state.current?' current':'');if(i===state.current)b.setAttribute('aria-current','true');b.draggable=true;b.title='Kéo chương này vào canvas';b.ondragstart=e=>{e.dataTransfer.setData('application/x-machvan-reference',JSON.stringify({kind:'chapter',refId:c.id}));e.dataTransfer.effectAllowed='copy';};const small=document.createElement('small');small.textContent=`CHƯƠNG ${String(i+1).padStart(2,'0')}`;b.append(small,document.createTextNode(c.title||'Chưa đặt tên'));b.onclick=()=>{state.current=i;selection=null;cursor=0;revision++;pending=null;$('resultBox').hidden=true;clearTimeout(timer);render();save();};box.append(b);});}
+
+let deletedChapter=null;
+function resetChapterDeleteUndo(){deletedChapter=null;$('undoDeleteChapter').hidden=true;}
+function finishChapterChange(){
+ projectEpoch++;revision++;selection=null;cursor=0;pending=null;undoChapter=null;
+ clearTimeout(timer);clearTimeout(titleTimer);clearTimeout(countTimer);
+ closeQuickWriter();quickDialogueTarget=null;
+ $('quickDialogue').close();$('canvasLibrary').close();$('resultBox').hidden=true;
+ characterRequestSerial++;$('characterSuggestions').replaceChildren();$('characterStatus').textContent='';
+ resetCanvasSession();
+ if(typeof retireAgentReview==='function')retireAgentReview('Danh sách chương đã thay đổi. Hãy yêu cầu lại trước khi áp dụng.');
+ render();save();
+ const selected=$('chapters').querySelectorAll('.chapter')[state.current];selected?.focus();
+}
+function deleteChapter(id){
+ const target=state.chapters.find(c=>c.id===id);if(!target)return;
+ const refs=state.story.nodes.filter(n=>n.kind==='chapter'&&n.refId===id).length;
+ const warning='Xóa chương “'+(target.title||'Chưa đặt tên')+'” và toàn bộ nội dung?'
+  +(refs?'\n'+refs+' thẻ chương trên canvas và dây liên quan cũng sẽ được xóa.':'')
+  +(state.chapters.length===1?'\nApp sẽ tạo một chương trống để bạn tiếp tục viết.':'')
+  +'\nBạn có thể hoàn tác lần xóa gần nhất trong phiên này.';
+ if(!confirm(warning))return;
+ deletedChapter=removeProjectChapter(state,id);
+ finishChapterChange();
+ toast('Đã xóa chương. Chọn “Hoàn tác xóa chương” nếu cần khôi phục.');
+}
+function undoChapterDeletion(){
+ if(!deletedChapter)return;
+ try{
+  const result=restoreProjectChapter(state,deletedChapter);
+  resetChapterDeleteUndo();finishChapterChange();
+  toast(result.skippedEdges?'Đã khôi phục chương. Một số dây không khôi phục vì nút đích đã bị xóa.':'Đã khôi phục chương cùng các thẻ và dây liên kết.');
+ }catch(e){toast(e.message);}
+}
+$('undoDeleteChapter').onclick=undoChapterDeletion;
+
+function renderChapters(){
+ const box=$('chapters');box.replaceChildren();$('undoDeleteChapter').hidden=!deletedChapter;
+ state.chapters.forEach((c,i)=>{
+  const row=document.createElement('div');row.className='chapter-row'+(i===state.current?' current':'');
+  const b=document.createElement('button');b.type='button';b.className='chapter'+(i===state.current?' current':'');
+  if(i===state.current)b.setAttribute('aria-current','true');
+  b.draggable=true;b.title='Kéo chương này vào canvas';
+  b.ondragstart=e=>{e.dataTransfer.setData('application/x-machvan-reference',JSON.stringify({kind:'chapter',refId:c.id}));e.dataTransfer.effectAllowed='copy';};
+  const small=document.createElement('small');small.textContent=`CHƯƠNG ${String(i+1).padStart(2,'0')}`;
+  b.append(small,document.createTextNode(c.title||'Chưa đặt tên'));
+  b.onclick=()=>{state.current=i;selection=null;cursor=0;revision++;pending=null;$('resultBox').hidden=true;clearTimeout(timer);render();save();};
+  const remove=document.createElement('button');remove.type='button';remove.className='chapter-delete';
+  remove.title='Xóa chương “'+(c.title||'Chưa đặt tên')+'”';remove.setAttribute('aria-label',remove.title);
+  remove.append(makeIcon('trash'));remove.onclick=()=>deleteChapter(c.id);
+  row.append(b,remove);box.append(row);
+ });
+}
 function counts(){$('wordCount').textContent=`${chapter().text.trim().split(/\s+/).filter(Boolean).length} từ · ${chapter().text.length} ký tự`;}
 function render(){renderOverview();applyEditorStyle();closeQuickWriter();renderChapters();$('chapterTitle').value=chapter().title;$('editor').value=chapter().text;renderEditorMarks();$('chapterLabel').textContent=`CHƯƠNG ${String(state.current+1).padStart(2,'0')}`;counts();renderCharacters();renderCanvas();$('projectName').value=state.projectName;setMode();if(typeof updateAgentContext==='function')updateAgentContext();}
 function setMode(){$('auto').classList.toggle('selected',state.auto);$('auto').setAttribute('aria-pressed',String(state.auto));$('manual').setAttribute('aria-pressed',String(!state.auto));$('manual').classList.toggle('selected',!state.auto);$('modeHelp').textContent=state.auto?'Sau khi ngừng gõ 3 giây, AI đề xuất sửa chính tả toàn chương. Bạn duyệt trước khi áp dụng.':'Chọn một đoạn văn. AI chỉ đề xuất sửa đoạn bạn đã chọn.';}
